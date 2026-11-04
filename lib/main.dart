@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'screens/login_screen.dart';
+import 'screens/cargando_screen.dart';
 
 void main() {
   runApp(const MainApp());
@@ -86,7 +86,7 @@ class MainApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const LoginScreen(),
+      home: const CargandoScreen(),
     );
   }
 }
