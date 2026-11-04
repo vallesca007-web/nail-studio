@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
+import 'catalogo_screen.dart';
 import 'citas_screen.dart';
-import 'galeria_screen.dart';
+import 'perfil_screen.dart';
 import 'servicios_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -68,7 +69,7 @@ class _HomeScreenState extends State<HomeScreen> {
       case 1:
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => GaleriaScreen()),
+          MaterialPageRoute(builder: (_) => CatalogoScreen()),
         );
         break;
       case 2:
@@ -80,7 +81,7 @@ class _HomeScreenState extends State<HomeScreen> {
       case 3:
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => ServiciosScreen()),
+          MaterialPageRoute(builder: (_) => PerfilScreen()),
         );
         break;
     }
@@ -267,7 +268,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 GestureDetector(
-                  onTap: () => _open(GaleriaScreen()),
+                  onTap: () => _open(CatalogoScreen()),
                   child: const Text(
                     'Ver catálogo',
                     style: TextStyle(
