@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'citas_screen.dart';
-import 'contacto_screen.dart';
 import 'galeria_screen.dart';
-import 'login_screen.dart';
 import 'servicios_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -14,324 +12,387 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final List<Map<String, dynamic>> _servicios = const [
-    {'icono': Icons.brush_outlined, 'nombre': 'Manicure'},
-    {'icono': Icons.spa_outlined, 'nombre': 'Pedicure'},
-    {'icono': Icons.auto_fix_high_outlined, 'nombre': 'Uñas acrílicas'},
-    {'icono': Icons.palette_outlined, 'nombre': 'Diseño de uñas'},
+  final List<Map<String, String>> _features = const [
+    {'label': 'Calidad Pura', 'icon': '✦'},
+    {'label': 'Nail Art', 'icon': '✧'},
+    {'label': 'Cuidado Spa', 'icon': '❋'},
+    {'label': 'Accesorios', 'icon': '✿'},
   ];
 
-  final List<int> _galeriaItems = [1, 2, 3, 4];
+  final List<Map<String, String>> _gallery = const [
+    {
+      'title': 'Manicura y esmalte',
+      'subtitle': 'Gel semipermanente...',
+      'image': 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=900&q=80',
+    },
+    {
+      'title': 'Pedicura',
+      'subtitle': 'Exfoliación & esmaltado.',
+      'image': 'https://images.unsplash.com/photo-1515377905703-c4788e51af15?auto=format&fit=crop&w=900&q=80',
+    },
+  ];
 
-  void _abrirPantalla(Widget pantalla) {
-    Navigator.push(context, MaterialPageRoute(builder: (context) => pantalla));
-  }
-
-  void _mostrarDialogoCerrarSesion() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Cerrar sesión'),
-        content: const Text('¿Seguro que quieres cerrar sesión?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
+  Widget _buildImage(String imageUrl, {double? width, double? height}) {
+    return Image.network(
+      imageUrl,
+      width: width,
+      height: height,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) {
+        return Container(
+          width: width,
+          height: height,
+          color: const Color(0xFFF5E8EB),
+          child: const Icon(
+            Icons.image_not_supported_outlined,
+            color: Color(0xFFCB9BAA),
+            size: 28,
           ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => const LoginScreen()),
-              );
-            },
-            child: const Text('Aceptar'),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  Widget _buildBanner() {
-    const pinkSoft = Color(0xFFF8C8DC);
-    const pinkMain = Color(0xFFF4A6C1);
-    const textDark = Color(0xFF4A4A4A);
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: pinkMain, width: 2),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Bienvenida a Anne Nails',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w700,
-                    color: textDark,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                const Text(
-                  'Cuida tus uñas con estilo, brillo y comodidad.',
-                  style: TextStyle(fontSize: 14, color: textDark),
-                ),
-                const SizedBox(height: 18),
-                ElevatedButton(
-                  onPressed: () => _abrirPantalla(const CitasScreen()),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: pinkMain,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                  child: const Text('Agendar cita'),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          Container(
-            width: 84,
-            height: 84,
-            decoration: BoxDecoration(
-              color: pinkSoft,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: pinkMain, width: 2),
-            ),
-            child: const Icon(Icons.favorite_border, size: 40, color: textDark),
-          ),
-        ],
-      ),
-    );
+  void _open(Widget page) {
+    Navigator.push(context, MaterialPageRoute(builder: (_) => page));
   }
 
-  Widget _buildServicioCard(Map<String, dynamic> servicio) {
-    const textDark = Color(0xFF4A4A4A);
-    const pinkMain = Color(0xFFF4A6C1);
-
-    return GestureDetector(
-      onTap: () => _abrirPantalla(const ServiciosScreen()),
-      child: Container(
-        width: 150,
-        margin: const EdgeInsets.only(right: 12),
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: pinkMain, width: 1.5),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(servicio['icono'] as IconData, size: 38, color: pinkMain),
-            const SizedBox(height: 12),
-            Text(
-              servicio['nombre'] as String,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: textDark,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildGaleriaItem(int index) {
-    const pinkMain = Color(0xFFF4A6C1);
-
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: pinkMain, width: 1.5),
-      ),
-      child: const Center(
-        child: Icon(Icons.image, size: 42, color: Color(0xFFB9B3B5)),
-      ),
-    );
-  }
-
-  Widget _buildSectionTitle(String title) {
-    const textDark = Color(0xFF4A4A4A);
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 22,
-          fontWeight: FontWeight.w700,
-          color: textDark,
-        ),
-      ),
-    );
+  void _onNavTap(int index) {
+    switch (index) {
+      case 0:
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const HomeScreen()),
+        );
+        break;
+      case 1:
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => GaleriaScreen()),
+        );
+        break;
+      case 2:
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const CitasScreen()),
+        );
+        break;
+      case 3:
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => ServiciosScreen()),
+        );
+        break;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    const pinkSoft = Color(0xFFF8C8DC);
-    const pinkMain = Color(0xFFF4A6C1);
-    const textDark = Color(0xFF4A4A4A);
+    const bg = Color(0xFFF7F2F2);
+    const pink = Color(0xFFEECCD6);
+    const dark = Color(0xFF2C2A2A);
+    const muted = Color(0xFF7B6B6F);
+    const white = Colors.white;
 
     return Scaffold(
+      backgroundColor: bg,
       appBar: AppBar(
-        title: const Text('Anne Nails'),
-        backgroundColor: pinkSoft,
-        foregroundColor: textDark,
-        leading: Builder(
-          builder: (context) => IconButton(
-            icon: const Icon(Icons.menu),
-            onPressed: () => Scaffold.of(context).openDrawer(),
-          ),
-        ),
-      ),
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
+        backgroundColor: bg,
+        elevation: 0,
+        titleSpacing: 14,
+        title: Row(
           children: [
-            const DrawerHeader(
-              decoration: BoxDecoration(color: pinkSoft),
-              child: Center(
-                child: Text(
-                  'Anne Nails',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w700,
-                    color: textDark,
-                  ),
-                ),
+            Container(
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: pink, width: 1.5),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(4),
+                child: Image.asset('assets/images/logo.png', fit: BoxFit.contain),
               ),
             ),
-            ListTile(
-              leading: const Icon(Icons.home_outlined),
-              title: const Text('Inicio'),
-              onTap: () => Navigator.pop(context),
+            const SizedBox(width: 8),
+            const Text(
+              'Anne Nails',
+              style: TextStyle(
+                color: dark,
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+              ),
             ),
-            ListTile(
-              leading: const Icon(Icons.cleaning_services_outlined),
-              title: const Text('Servicios'),
-              onTap: () {
-                Navigator.pop(context);
-                _abrirPantalla(const ServiciosScreen());
+          ],
+        ),
+        actions: [
+          Container(
+            width: 36,
+            height: 36,
+            margin: const EdgeInsets.only(right: 16),
+            decoration: BoxDecoration(
+              color: dark,
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: const Icon(Icons.shopping_bag_outlined, color: white, size: 18),
+          ),
+        ],
+      ),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(18, 8, 18, 20),
+          children: [
+            const Row(
+              children: [
+                Icon(Icons.menu, color: dark, size: 26),
+                Spacer(),
+                Icon(Icons.arrow_back_ios_new_rounded, color: dark, size: 18),
+              ],
+            ),
+            const SizedBox(height: 18),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFF5E6EB), Color(0xFFF1D8E1)],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                ),
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'COLECCIÓN EXCLUSIVA',
+                    style: TextStyle(
+                      letterSpacing: 1.2,
+                      color: muted,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 11,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    'Lujo Sutil &\nAcabados Satin',
+                    style: TextStyle(
+                      color: dark,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 30,
+                      height: 1.1,
+                      fontFamily: 'Georgia',
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Diseños de autor, esmaltado semipermanente y tratamientos botánicos para realzar tu delicadeza natural.',
+                    style: TextStyle(
+                      color: muted,
+                      fontSize: 13,
+                      height: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  ElevatedButton.icon(
+                    onPressed: () => _open(CitasScreen()),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: dark,
+                      foregroundColor: white,
+                      minimumSize: const Size(170, 48),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                    ),
+                    icon: const Icon(Icons.arrow_forward_rounded),
+                    label: const Text(
+                      'Cita online',
+                      style: TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: _features.map((item) {
+                return Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: Column(
+                      children: [
+                        Container(
+                          width: 54,
+                          height: 54,
+                          decoration: BoxDecoration(
+                            color: white,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: pink, width: 1.2),
+                          ),
+                          child: Center(
+                            child: Text(
+                              item['icon']!,
+                              style: const TextStyle(fontSize: 22, color: dark),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          item['label']!,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: dark,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Fotos de Estudio',
+                  style: TextStyle(
+                    color: dark,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () => _open(GaleriaScreen()),
+                  child: const Text(
+                    'Ver catálogo',
+                    style: TextStyle(
+                      color: dark,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final itemWidth = (constraints.maxWidth - 12) / 2;
+
+                return Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: _gallery.map((item) {
+                    return SizedBox(
+                      width: itemWidth,
+                      child: GestureDetector(
+                        onTap: () => _open(ServiciosScreen()),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(18),
+                              child: SizedBox(
+                                height: itemWidth * 0.85,
+                                width: double.infinity,
+                                child: _buildImage(item['image']!),
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              item['title']!,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: dark,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 18,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              item['subtitle']!,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: muted,
+                                fontSize: 11,
+                                height: 1.4,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                );
               },
             ),
-            ListTile(
-              leading: const Icon(Icons.photo_library_outlined),
-              title: const Text('Galería'),
-              onTap: () {
-                Navigator.pop(context);
-                _abrirPantalla(const GaleriaScreen());
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.calendar_today_outlined),
-              title: const Text('Agendar cita'),
-              onTap: () {
-                Navigator.pop(context);
-                _abrirPantalla(const CitasScreen());
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.call_outlined),
-              title: const Text('Contacto'),
-              onTap: () {
-                Navigator.pop(context);
-                _abrirPantalla(const ContactoScreen());
-              },
-            ),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.logout_outlined),
-              title: const Text('Cerrar sesión'),
-              onTap: () {
-                Navigator.pop(context);
-                _mostrarDialogoCerrarSesion();
-              },
+            const SizedBox(height: 18),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8EEF2),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.favorite_outline, color: dark, size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: RichText(
+                      text: const TextSpan(
+                        text: 'Tus manos son tu primera carta de presentación.\n',
+                        style: TextStyle(color: dark, fontSize: 12, height: 1.5),
+                        children: [
+                          TextSpan(
+                            text: 'Anne Nails Atelier © Cuidado personalizado',
+                            style: TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(18),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildBanner(),
-              const SizedBox(height: 26),
-              _buildSectionTitle('Nuestros servicios'),
-              SizedBox(
-                height: 170,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: _servicios.length,
-                  itemBuilder: (context, index) {
-                    return _buildServicioCard(_servicios[index]);
-                  },
-                ),
-              ),
-              const SizedBox(height: 26),
-              _buildSectionTitle('Galería'),
-              GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: _galeriaItems.length,
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                  childAspectRatio: 1,
-                ),
-                itemBuilder: (context, index) {
-                  return _buildGaleriaItem(_galeriaItems[index]);
-                },
-              ),
-              const SizedBox(height: 18),
-              Center(
-                child: TextButton.icon(
-                  onPressed: () => _abrirPantalla(const GaleriaScreen()),
-                  icon: const Icon(Icons.arrow_forward_ios_rounded),
-                  label: const Text('Ver más'),
-                  style: TextButton.styleFrom(foregroundColor: pinkMain),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Center(
-                child: SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: () => _abrirPantalla(const ContactoScreen()),
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size.fromHeight(50),
-                      side: const BorderSide(color: pinkMain, width: 1.5),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                    child: const Text(
-                      'Contacto',
-                      style: TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
+      bottomNavigationBar: Container(
+        height: 72,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: const BoxDecoration(
+          color: white,
+          boxShadow: [
+            BoxShadow(color: Color(0x11000000), blurRadius: 10, offset: Offset(0, -2)),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            IconButton(
+              onPressed: () => _onNavTap(0),
+              icon: const Icon(Icons.home, color: dark),
+            ),
+            IconButton(
+              onPressed: () => _onNavTap(1),
+              icon: const Icon(Icons.grid_view_rounded, color: muted),
+            ),
+            IconButton(
+              onPressed: () => _onNavTap(2),
+              icon: const Icon(Icons.calendar_today_outlined, color: muted),
+            ),
+            IconButton(
+              onPressed: () => _onNavTap(3),
+              icon: const Icon(Icons.person_outline, color: muted),
+            ),
+          ],
         ),
       ),
     );
