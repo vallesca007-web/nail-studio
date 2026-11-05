@@ -4,6 +4,7 @@ import 'catalogo_screen.dart';
 import 'citas_screen.dart';
 import 'perfil_screen.dart';
 import 'servicios_screen.dart';
+import '../widgets/menu_lateral.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -58,6 +59,22 @@ class _HomeScreenState extends State<HomeScreen> {
     Navigator.push(context, MaterialPageRoute(builder: (_) => page));
   }
 
+  void _onMenuSelect(String opcion) {
+    Navigator.pop(context);
+
+    switch (opcion) {
+      case 'servicios':
+        _open(ServiciosScreen());
+        break;
+      case 'cita':
+        _open(const CitasScreen());
+        break;
+      case 'perfil':
+        _open(const PerfilScreen());
+        break;
+    }
+  }
+
   void _onNavTap(int index) {
     switch (index) {
       case 0:
@@ -97,9 +114,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       backgroundColor: bg,
+      drawer: MenuLateral(alSeleccionar: _onMenuSelect),
       appBar: AppBar(
         backgroundColor: bg,
         elevation: 0,
+        automaticallyImplyLeading: false,
         titleSpacing: 14,
         title: Row(
           children: [
@@ -113,7 +132,10 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               child: Padding(
                 padding: const EdgeInsets.all(4),
-                child: Image.asset('assets/images/logo.png', fit: BoxFit.contain),
+                child: Image.asset(
+                  'assets/images/logo.png',
+                  fit: BoxFit.contain,
+                ),
               ),
             ),
             const SizedBox(width: 8),
@@ -136,7 +158,11 @@ class _HomeScreenState extends State<HomeScreen> {
               color: dark,
               borderRadius: BorderRadius.circular(18),
             ),
-            child: const Icon(Icons.shopping_bag_outlined, color: white, size: 18),
+            child: const Icon(
+              Icons.shopping_bag_outlined,
+              color: white,
+              size: 18,
+            ),
           ),
         ],
       ),
@@ -144,9 +170,15 @@ class _HomeScreenState extends State<HomeScreen> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(18, 8, 18, 20),
           children: [
-            const Row(
+            Row(
               children: [
-                Icon(Icons.menu, color: dark, size: 26),
+                Builder(
+                  builder: (context) => IconButton(
+                    tooltip: 'Abrir menú',
+                    onPressed: () => Scaffold.of(context).openDrawer(),
+                    icon: const Icon(Icons.menu, color: dark, size: 26),
+                  ),
+                ),
                 Spacer(),
                 Icon(Icons.arrow_back_ios_new_rounded, color: dark, size: 18),
               ],
@@ -189,11 +221,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(height: 6),
                   const Text(
                     'Diseños de autor, esmaltado semipermanente y tratamientos botánicos para realzar tu delicadeza natural.',
-                    style: TextStyle(
-                      color: muted,
-                      fontSize: 13,
-                      height: 1.5,
-                    ),
+                    style: TextStyle(color: muted, fontSize: 13, height: 1.5),
                   ),
                   const SizedBox(height: 18),
                   ElevatedButton.icon(
@@ -348,8 +376,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   Expanded(
                     child: RichText(
                       text: const TextSpan(
-                        text: 'Tus manos son tu primera carta de presentación.\n',
-                        style: TextStyle(color: dark, fontSize: 12, height: 1.5),
+                        text:
+                            'Tus manos son tu primera carta de presentación.\n',
+                        style: TextStyle(
+                          color: dark,
+                          fontSize: 12,
+                          height: 1.5,
+                        ),
                         children: [
                           TextSpan(
                             text: 'Anne Nails Atelier © Cuidado personalizado',
@@ -371,7 +404,11 @@ class _HomeScreenState extends State<HomeScreen> {
         decoration: const BoxDecoration(
           color: white,
           boxShadow: [
-            BoxShadow(color: Color(0x11000000), blurRadius: 10, offset: Offset(0, -2)),
+            BoxShadow(
+              color: Color(0x11000000),
+              blurRadius: 10,
+              offset: Offset(0, -2),
+            ),
           ],
         ),
         child: Row(
