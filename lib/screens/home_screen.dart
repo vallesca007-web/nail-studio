@@ -1,361 +1,260 @@
 import 'package:flutter/material.dart';
 
-import 'catalogo_screen.dart';
+import '../theme/app_theme.dart';
+import '../widgets/app_drawer.dart';
+import '../widgets/app_header.dart';
+import '../widgets/bottom_nav_bar.dart';
+import '../widgets/pill_button.dart';
 import 'citas_screen.dart';
 import 'perfil_screen.dart';
 import 'servicios_screen.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
-  @override
-  State<HomeScreen> createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends State<HomeScreen> {
-  final List<Map<String, String>> _features = const [
-    {'label': 'Calidad Pura', 'icon': '✦'},
-    {'label': 'Nail Art', 'icon': '✧'},
-    {'label': 'Cuidado Spa', 'icon': '❋'},
-    {'label': 'Accesorios', 'icon': '✿'},
-  ];
-
-  final List<Map<String, String>> _gallery = const [
-    {
-      'title': 'Manicura y esmalte',
-      'subtitle': 'Gel semipermanente...',
-      'image': 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=900&q=80',
-    },
-    {
-      'title': 'Pedicura',
-      'subtitle': 'Exfoliación & esmaltado.',
-      'image': 'https://images.unsplash.com/photo-1515377905703-c4788e51af15?auto=format&fit=crop&w=900&q=80',
-    },
-  ];
-
-  Widget _buildImage(String imageUrl, {double? width, double? height}) {
-    return Image.network(
-      imageUrl,
-      width: width,
-      height: height,
-      fit: BoxFit.cover,
-      errorBuilder: (context, error, stackTrace) {
-        return Container(
-          width: width,
-          height: height,
-          color: const Color(0xFFF5E8EB),
-          child: const Icon(
-            Icons.image_not_supported_outlined,
-            color: Color(0xFFCB9BAA),
-            size: 28,
-          ),
-        );
-      },
-    );
-  }
-
-  void _open(Widget page) {
-    Navigator.push(context, MaterialPageRoute(builder: (_) => page));
-  }
-
-  void _onNavTap(int index) {
-    switch (index) {
-      case 0:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
-        );
-        break;
-      case 1:
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => CatalogoScreen()),
-        );
-        break;
-      case 2:
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const CitasScreen()),
-        );
-        break;
-      case 3:
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => PerfilScreen()),
-        );
-        break;
+  void _navigate(BuildContext context, int index) {
+    final page = switch (index) {
+      1 => ServiciosScreen(),
+      2 => const CitasScreen(),
+      3 => PerfilScreen(),
+      _ => const HomeScreen(),
+    };
+    if (index != 0) {
+      Navigator.push(context, MaterialPageRoute<void>(builder: (_) => page));
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    const bg = Color(0xFFF7F2F2);
-    const pink = Color(0xFFEECCD6);
-    const dark = Color(0xFF2C2A2A);
-    const muted = Color(0xFF7B6B6F);
-    const white = Colors.white;
+    const benefits = [
+      (Icons.workspace_premium_outlined, 'Calidad Pure'),
+      (Icons.auto_awesome_outlined, 'Nail Art'),
+      (Icons.spa_outlined, 'Cuidado Spa'),
+    ];
+    const gallery = [
+      (
+        'Manicura y esmalte',
+        'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=900&q=80',
+      ),
+      (
+        'Pedicura',
+        'https://images.unsplash.com/photo-1515377905703-c4788e51af15?auto=format&fit=crop&w=900&q=80',
+      ),
+    ];
 
     return Scaffold(
-      backgroundColor: bg,
-      appBar: AppBar(
-        backgroundColor: bg,
-        elevation: 0,
-        titleSpacing: 14,
-        title: Row(
-          children: [
-            Container(
-              width: 24,
-              height: 24,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: pink, width: 1.5),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(4),
-                child: Image.asset('assets/images/logo.png', fit: BoxFit.contain),
-              ),
-            ),
-            const SizedBox(width: 8),
-            const Text(
-              'Anne Nails',
-              style: TextStyle(
-                color: dark,
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          Container(
-            width: 36,
-            height: 36,
-            margin: const EdgeInsets.only(right: 16),
-            decoration: BoxDecoration(
-              color: dark,
-              borderRadius: BorderRadius.circular(18),
-            ),
-            child: const Icon(Icons.shopping_bag_outlined, color: white, size: 18),
-          ),
-        ],
-      ),
+      drawer: const AppDrawer(),
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(18, 8, 18, 20),
+        child: Column(
           children: [
-            const Row(
-              children: [
-                Icon(Icons.menu, color: dark, size: 26),
-                Spacer(),
-                Icon(Icons.arrow_back_ios_new_rounded, color: dark, size: 18),
-              ],
-            ),
-            const SizedBox(height: 18),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFFF5E6EB), Color(0xFFF1D8E1)],
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                ),
-                borderRadius: BorderRadius.circular(24),
+            AppHeader(
+              onProfileTap: () => Navigator.push(
+                context,
+                MaterialPageRoute<void>(builder: (_) => PerfilScreen()),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            ),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 22),
                 children: [
-                  const Text(
-                    'COLECCIÓN EXCLUSIVA',
-                    style: TextStyle(
-                      letterSpacing: 1.2,
-                      color: muted,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 11,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  const Text(
-                    'Lujo Sutil &\nAcabados Satin',
-                    style: TextStyle(
-                      color: dark,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 30,
-                      height: 1.1,
-                      fontFamily: 'Georgia',
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  const Text(
-                    'Diseños de autor, esmaltado semipermanente y tratamientos botánicos para realzar tu delicadeza natural.',
-                    style: TextStyle(
-                      color: muted,
-                      fontSize: 13,
-                      height: 1.5,
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Builder(
+                      builder: (context) => SecondaryPill(
+                        label: 'Menú',
+                        icon: Icons.menu,
+                        onPressed: () => Scaffold.of(context).openDrawer(),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 18),
-                  ElevatedButton.icon(
-                    onPressed: () => _open(CitasScreen()),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: dark,
-                      foregroundColor: white,
-                      minimumSize: const Size(170, 48),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(18),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 13,
+                        vertical: 8,
+                      ),
+                      decoration: const ShapeDecoration(
+                        color: AppTheme.softPink,
+                        shape: StadiumBorder(),
+                      ),
+                      child: Text(
+                        'TEMPORADA PRIMAVERA',
+                        style: AppTheme.labelStyle,
                       ),
                     ),
-                    icon: const Icon(Icons.arrow_forward_rounded),
-                    label: const Text(
-                      'Cita online',
-                      style: TextStyle(fontWeight: FontWeight.w700),
-                    ),
                   ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: _features.map((item) {
-                return Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                  const SizedBox(height: 14),
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [AppTheme.heroPink, AppTheme.softPink],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(30),
+                    ),
                     child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Container(
-                          width: 54,
-                          height: 54,
-                          decoration: BoxDecoration(
-                            color: white,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: pink, width: 1.2),
-                          ),
-                          child: Center(
-                            child: Text(
-                              item['icon']!,
-                              style: const TextStyle(fontSize: 22, color: dark),
+                        Text('ANNE SIGNATURE', style: AppTheme.labelStyle),
+                        const SizedBox(height: 12),
+                        Text.rich(
+                          TextSpan(
+                            text: 'Lujo Sutil &\n',
+                            style: AppTheme.titleStyle.copyWith(
+                              fontSize: 31,
+                              height: 1.1,
                             ),
+                            children: [
+                              TextSpan(
+                                text: 'Arte Juvenil',
+                                style: AppTheme.titleStyle.copyWith(
+                                  fontSize: 30,
+                                  fontStyle: FontStyle.italic,
+                                  color: AppTheme.accent,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          item['label']!,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: dark,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
+                        const SizedBox(height: 10),
+                        const Text(
+                          'Diseños de autor y cuidado personalizado para realzar tu belleza natural.',
+                          style: TextStyle(color: AppTheme.muted, height: 1.5),
+                        ),
+                        const SizedBox(height: 20),
+                        SizedBox(
+                          width: 180,
+                          child: PillButton(
+                            label: 'Cita online',
+                            onPressed: () => Navigator.push(
+                              context,
+                              MaterialPageRoute<void>(
+                                builder: (_) => const CitasScreen(),
+                              ),
+                            ),
                           ),
                         ),
                       ],
                     ),
                   ),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Fotos de Estudio',
-                  style: TextStyle(
-                    color: dark,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                GestureDetector(
-                  onTap: () => _open(CatalogoScreen()),
-                  child: const Text(
-                    'Ver catálogo',
-                    style: TextStyle(
-                      color: dark,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final itemWidth = (constraints.maxWidth - 12) / 2;
-
-                return Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: _gallery.map((item) {
-                    return SizedBox(
-                      width: itemWidth,
-                      child: GestureDetector(
-                        onTap: () => _open(ServiciosScreen()),
+                  const SizedBox(height: 22),
+                  Row(
+                    children: benefits.map((item) {
+                      return Expanded(
                         child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(18),
-                              child: SizedBox(
-                                height: itemWidth * 0.85,
-                                width: double.infinity,
-                                child: _buildImage(item['image']!),
+                            Container(
+                              width: 52,
+                              height: 52,
+                              decoration: BoxDecoration(
+                                color: AppTheme.surface,
+                                borderRadius: BorderRadius.circular(18),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppTheme.text.withValues(
+                                      alpha: 0.04,
+                                    ),
+                                    blurRadius: 12,
+                                  ),
+                                ],
                               ),
+                              child: Icon(item.$1, color: AppTheme.accent),
                             ),
-                            const SizedBox(height: 10),
+                            const SizedBox(height: 7),
                             Text(
-                              item['title']!,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                              item.$2,
+                              textAlign: TextAlign.center,
                               style: const TextStyle(
-                                color: dark,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 18,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              item['subtitle']!,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: muted,
-                                fontSize: 11,
-                                height: 1.4,
+                                color: AppTheme.text,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                           ],
                         ),
-                      ),
-                    );
-                  }).toList(),
-                );
-              },
-            ),
-            const SizedBox(height: 18),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF8EEF2),
-                borderRadius: BorderRadius.circular(18),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.favorite_outline, color: dark, size: 20),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: RichText(
-                      text: const TextSpan(
-                        text: 'Tus manos son tu primera carta de presentación.\n',
-                        style: TextStyle(color: dark, fontSize: 12, height: 1.5),
-                        children: [
-                          TextSpan(
-                            text: 'Anne Nails Atelier © Cuidado personalizado',
-                            style: TextStyle(fontWeight: FontWeight.w700),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 26),
+                  Text(
+                    'Fotos de Estudio',
+                    style: AppTheme.titleStyle.copyWith(fontSize: 24),
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: gallery.map((item) {
+                      return Expanded(
+                        child: Padding(
+                          padding: EdgeInsets.only(
+                            right: item == gallery.first ? 7 : 0,
+                            left: item == gallery.last ? 7 : 0,
                           ),
-                        ],
+                          child: Container(
+                            padding: const EdgeInsets.all(9),
+                            decoration: BoxDecoration(
+                              color: AppTheme.surface,
+                              borderRadius: BorderRadius.circular(24),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppTheme.text.withValues(alpha: 0.04),
+                                  blurRadius: 15,
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(18),
+                                  child: AspectRatio(
+                                    aspectRatio: 0.92,
+                                    child: Image.network(
+                                      item.$2,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, _, _) =>
+                                          const ColoredBox(
+                                            color: AppTheme.softPink,
+                                            child: Icon(
+                                              Icons.spa_outlined,
+                                              color: AppTheme.accent,
+                                            ),
+                                          ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                Text(
+                                  item.$1,
+                                  maxLines: 2,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 20),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppTheme.softPink,
+                      borderRadius: BorderRadius.circular(22),
+                    ),
+                    child: Text(
+                      '“Tus manos son tu primera carta de presentación.”',
+                      textAlign: TextAlign.center,
+                      style: AppTheme.titleStyle.copyWith(
+                        fontSize: 17,
+                        fontStyle: FontStyle.italic,
                       ),
                     ),
                   ),
@@ -365,36 +264,9 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: Container(
-        height: 72,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        decoration: const BoxDecoration(
-          color: white,
-          boxShadow: [
-            BoxShadow(color: Color(0x11000000), blurRadius: 10, offset: Offset(0, -2)),
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            IconButton(
-              onPressed: () => _onNavTap(0),
-              icon: const Icon(Icons.home, color: dark),
-            ),
-            IconButton(
-              onPressed: () => _onNavTap(1),
-              icon: const Icon(Icons.grid_view_rounded, color: muted),
-            ),
-            IconButton(
-              onPressed: () => _onNavTap(2),
-              icon: const Icon(Icons.calendar_today_outlined, color: muted),
-            ),
-            IconButton(
-              onPressed: () => _onNavTap(3),
-              icon: const Icon(Icons.person_outline, color: muted),
-            ),
-          ],
-        ),
+      bottomNavigationBar: BottomNavBar(
+        selectedIndex: 0,
+        onTap: (index) => _navigate(context, index),
       ),
     );
   }

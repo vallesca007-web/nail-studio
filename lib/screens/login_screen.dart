@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../services/app_session.dart';
+import '../theme/app_theme.dart';
+import '../widgets/pill_button.dart';
 import 'home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -11,422 +14,271 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-
-  bool _obscurePassword = true;
+  final _email = TextEditingController();
+  final _password = TextEditingController();
+  bool _hidePassword = true;
 
   @override
   void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
+    _email.dispose();
+    _password.dispose();
     super.dispose();
   }
 
-  Widget _buildNetworkImage(String imageUrl, {double? width, double? height}) {
-    return Image.network(
-      imageUrl,
-      width: width,
-      height: height,
-      fit: BoxFit.cover,
-      errorBuilder: (context, error, stackTrace) {
-        return Container(
-          width: width,
-          height: height,
-          color: const Color(0xFFF5E8EB),
-          child: const Icon(
-            Icons.image_not_supported_outlined,
-            color: Color(0xFFCB9BAA),
-            size: 28,
-          ),
-        );
-      },
-    );
-  }
-
-  void _login() {
-    if (_formKey.currentState!.validate()) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
-      );
+  void _continue({required bool guest}) {
+    if (!guest && !_formKey.currentState!.validate()) return;
+    if (guest) {
+      AppSession.instance.setGuest();
+    } else {
+      AppSession.instance.setEmailUser(_email.text);
     }
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute<void>(builder: (_) => const HomeScreen()),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    const bg = Color(0xFFF7F2F2);
-    const pink = Color(0xFFEBC4D0);
-    const dark = Color(0xFF2F2A2A);
-    const muted = Color(0xFF7A6B6F);
-    const fieldBg = Color(0xFFEAE5E5);
-
     return Scaffold(
-      backgroundColor: bg,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
+            padding: const EdgeInsets.all(20),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(26),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.04),
-                      blurRadius: 20,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(18),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF5E8EB),
-                        borderRadius: BorderRadius.circular(24),
+              constraints: const BoxConstraints(maxWidth: 440),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [AppTheme.heroPink, AppTheme.softPink],
                       ),
-                      child: Column(
-                        children: [
-                          Container(
-                            width: 64,
-                            height: 64,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(32),
-                              border: Border.all(color: pink, width: 2),
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(12),
-                              child: Image.asset(
-                                'assets/images/logo.png',
-                                fit: BoxFit.contain,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          const Text(
-                            'ATELIER DE MANICURA',
-                            style: TextStyle(
-                              fontSize: 11,
-                              letterSpacing: 1.2,
-                              color: muted,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          const Text(
-                            'Anne Nails',
-                            style: TextStyle(
-                              fontSize: 32,
-                              fontWeight: FontWeight.w700,
-                              color: dark,
-                              fontFamily: 'Georgia',
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          const Text(
-                            'Cuidado sofisticado, indulgencia y diseño de autor para tus manos.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: muted,
-                              height: 1.4,
-                            ),
-                          ),
-                        ],
-                      ),
+                      borderRadius: BorderRadius.circular(30),
                     ),
-                    const SizedBox(height: 28),
-                    const Text(
-                      'BIENVENIDA',
-                      style: TextStyle(
-                        fontSize: 12,
-                        letterSpacing: 1.2,
-                        color: muted,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    const Text(
-                      'Iniciar sesión',
-                      style: TextStyle(
-                        fontSize: 38,
-                        fontWeight: FontWeight.w700,
-                        color: dark,
-                        height: 1.1,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    const Text(
-                      'Accede a tu agenda exclusiva y citas personalizadas.',
-                      style: TextStyle(
-                        color: muted,
-                        fontSize: 14,
-                        height: 1.5,
-                      ),
-                    ),
-                    const SizedBox(height: 22),
-                    Form(
-                      key: _formKey,
-                      child: Column(
-                        children: [
-                          const Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              'Correo',
-                              style: TextStyle(
-                                color: dark,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          TextFormField(
-                            controller: _emailController,
-                            keyboardType: TextInputType.emailAddress,
-                            validator: (value) {
-                              final text = value ?? '';
-                              if (text.trim().isEmpty) return 'Ingrese su correo';
-                              if (!text.contains('@')) return 'Correo inválido';
-                              return null;
-                            },
-                            decoration: InputDecoration(
-                              filled: true,
-                              fillColor: fieldBg,
-                              hintText: 'Ingresar correo',
-                              hintStyle: const TextStyle(color: Color(0xFF9A8D90)),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(14),
-                                borderSide: BorderSide.none,
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(14),
-                                borderSide: BorderSide.none,
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(14),
-                                borderSide: BorderSide.none,
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 16,
-                              ),
-                              prefixIcon: const Icon(Icons.mail_outline, color: muted),
-                            ),
-                          ),
-                          const SizedBox(height: 18),
-                          const Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              'Contraseña',
-                              style: TextStyle(
-                                color: dark,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          TextFormField(
-                            controller: _passwordController,
-                            obscureText: _obscurePassword,
-                            validator: (value) {
-                              if ((value ?? '').trim().isEmpty) {
-                                return 'Ingrese su contraseña';
-                              }
-                              return null;
-                            },
-                            decoration: InputDecoration(
-                              filled: true,
-                              fillColor: fieldBg,
-                              hintText: 'Contraseña',
-                              hintStyle: const TextStyle(color: Color(0xFF9A8D90)),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(14),
-                                borderSide: BorderSide.none,
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(14),
-                                borderSide: BorderSide.none,
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(14),
-                                borderSide: BorderSide.none,
-                              ),
-                              prefixIcon: const Icon(Icons.lock_outline, color: muted),
-                              suffixIcon: IconButton(
-                                splashRadius: 18,
-                                onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                                icon: Icon(
-                                  _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                                  color: muted,
-                                ),
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 16,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: TextButton(
-                              onPressed: () {},
-                              child: const Text(
-                                '¿Olvidaste tu contraseña?',
-                                style: TextStyle(
-                                  color: dark,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          ElevatedButton(
-                            onPressed: _login,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF2B2A2B),
-                              foregroundColor: Colors.white,
-                              minimumSize: const Size.fromHeight(52),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(18),
-                              ),
-                            ),
-                            child: const Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  'Entrar',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                                SizedBox(width: 8),
-                                Icon(Icons.arrow_forward_rounded, size: 18),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    Row(
+                    child: Column(
                       children: [
-                        Expanded(
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(18),
-                            child: SizedBox(
-                              height: 108,
-                              child: Stack(
-                                fit: StackFit.expand,
-                                children: [
-                                  _buildNetworkImage(
-                                    'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=900&q=80',
-                                  ),
-                                  Positioned(
-                                    bottom: 10,
-                                    left: 10,
-                                    right: 10,
-                                    child: Text(
-                                      'Nail Art Couture',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w700,
-                                        shadows: [Shadow(color: Colors.black.withValues(alpha: 0.35), blurRadius: 8)],
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
+                        Container(
+                          width: 76,
+                          height: 76,
+                          padding: const EdgeInsets.all(16),
+                          decoration: const BoxDecoration(
+                            color: AppTheme.surface,
+                            shape: BoxShape.circle,
                           ),
+                          child: Image.asset('assets/images/logo.png'),
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(18),
-                            child: SizedBox(
-                              height: 108,
-                              child: Stack(
-                                fit: StackFit.expand,
-                                children: [
-                                  _buildNetworkImage(
-                                    'https://images.unsplash.com/photo-1600948836101-f9ffda59d250?auto=format&fit=crop&w=900&q=80',
-                                  ),
-                                  Positioned(
-                                    bottom: 10,
-                                    left: 10,
-                                    right: 10,
-                                    child: Text(
-                                      'Atención Privada',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w700,
-                                        shadows: [Shadow(color: Colors.black.withValues(alpha: 0.35), blurRadius: 8)],
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
+                        const SizedBox(height: 14),
+                        Text('STUDIO DE MANICURA', style: AppTheme.labelStyle),
+                        const SizedBox(height: 5),
+                        Text(
+                          'Anne Nails',
+                          style: AppTheme.titleStyle.copyWith(fontSize: 34),
+                        ),
+                        const SizedBox(height: 5),
+                        const Text(
+                          'Cuidado sofisticado, indulgencia y diseño de autor para tus manos.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: AppTheme.muted, height: 1.5),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 22),
-                    Center(
-                      child: GestureDetector(
-                        onTap: () {},
-                        child: const Text(
-                          '¿Aún no eres parte del atelier? Crear cuenta',
-                          style: TextStyle(
-                            color: dark,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 15,
+                  ),
+                  const SizedBox(height: 28),
+                  Text('BIENVENIDA', style: AppTheme.labelStyle),
+                  const SizedBox(height: 5),
+                  Text(
+                    'Iniciar sesión',
+                    style: AppTheme.titleStyle.copyWith(fontSize: 32),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Accede a tu agenda exclusiva y citas personalizadas.',
+                    style: TextStyle(color: AppTheme.muted),
+                  ),
+                  const SizedBox(height: 20),
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: AppTheme.surface,
+                      borderRadius: BorderRadius.circular(28),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppTheme.text.withValues(alpha: 0.045),
+                          blurRadius: 22,
+                          offset: const Offset(0, 7),
+                        ),
+                      ],
+                    ),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const Text(
+                            'Correo',
+                            style: TextStyle(fontWeight: FontWeight.w600),
                           ),
-                        ),
+                          const SizedBox(height: 7),
+                          TextFormField(
+                            controller: _email,
+                            keyboardType: TextInputType.emailAddress,
+                            decoration: const InputDecoration(
+                              hintText: 'Ingresar correo',
+                              prefixIcon: Icon(Icons.mail_outline),
+                            ),
+                            validator: (value) {
+                              final email = value?.trim() ?? '';
+                              if (email.isEmpty || !email.contains('@')) {
+                                return 'Ingresa un correo válido';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 15),
+                          const Text(
+                            'Contraseña',
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          const SizedBox(height: 7),
+                          TextFormField(
+                            controller: _password,
+                            obscureText: _hidePassword,
+                            decoration: InputDecoration(
+                              hintText: 'Contraseña',
+                              prefixIcon: const Icon(Icons.lock_outline),
+                              suffixIcon: IconButton(
+                                onPressed: () => setState(() {
+                                  _hidePassword = !_hidePassword;
+                                }),
+                                icon: Icon(
+                                  _hidePassword
+                                      ? Icons.visibility_outlined
+                                      : Icons.visibility_off_outlined,
+                                ),
+                              ),
+                            ),
+                            validator: (value) =>
+                                (value?.trim().isEmpty ?? true)
+                                ? 'Ingresa tu contraseña'
+                                : null,
+                          ),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton(
+                              onPressed: () => ScaffoldMessenger.of(context)
+                                  .showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Contacta con el estudio para recuperar tu acceso.',
+                                      ),
+                                    ),
+                                  ),
+                              child: const Text('¿Olvidaste tu contraseña?'),
+                            ),
+                          ),
+                          PillButton(
+                            label: 'Entrar',
+                            onPressed: () => _continue(guest: false),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 10),
-                    Center(
-                      child: TextButton.icon(
-                        onPressed: () => Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(builder: (context) => const HomeScreen()),
-                        ),
-                        icon: const Icon(Icons.person_outline, color: dark),
-                        label: const Text(
-                          'Continuar como invitada',
-                          style: TextStyle(color: dark, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 16),
+                  const Row(
+                    children: [
+                      Expanded(
+                        child: _PromoTile(
+                          title: 'Nail Art Couture',
+                          imageUrl: 'https://images.unsplash.com/photo-1604654894610-df63bc536371?auto=format&fit=crop&w=700&q=80',
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 20),
-                    const Text(
-                      'Explora servicios, estilos y disponibilidad antes de registrarte',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: muted,
-                        fontSize: 12,
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: _PromoTile(
+                          title: 'Atención Privada',
+                          imageUrl: 'https://images.unsplash.com/photo-1600948836101-f9ffda59d250?auto=format&fit=crop&w=700&q=80',
+                        ),
                       ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Center(
+                    child: TextButton(
+                      onPressed: () => ScaffoldMessenger.of(context)
+                          .showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'La creación de cuentas estará disponible pronto.',
+                              ),
+                            ),
+                          ),
+                      child: const Text('Crear cuenta'),
                     ),
-                  ],
-                ),
+                  ),
+                  SecondaryPill(
+                    label: 'Continuar como invitada',
+                    onPressed: () => _continue(guest: true),
+                  ),
+                ],
               ),
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _PromoTile extends StatelessWidget {
+  const _PromoTile({required this.title, required this.imageUrl});
+
+  final String title;
+  final String imageUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 96,
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(20)),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Image.network(
+            imageUrl,
+            fit: BoxFit.cover,
+            errorBuilder: (_, _, _) => const ColoredBox(
+              color: AppTheme.softPink,
+              child: Icon(Icons.spa_outlined, color: AppTheme.accent),
+            ),
+          ),
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Colors.transparent, AppTheme.button],
+              ),
+            ),
+          ),
+          Align(
+            alignment: Alignment.bottomLeft,
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Text(
+                title,
+                style: const TextStyle(
+                  color: AppTheme.surface,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
