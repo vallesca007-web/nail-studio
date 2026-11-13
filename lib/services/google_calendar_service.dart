@@ -268,6 +268,11 @@ class GoogleCalendarService {
     }
   }
 
+  Future<void> deleteAppointment(String eventId) async {
+    final api = await _calendarApi();
+    await api.events.delete(AppConfig.calendarId, eventId);
+  }
+
   Future<void> signOut() async {
     if (_account != null) {
       await (_initialization ??= _googleSignIn.initialize(

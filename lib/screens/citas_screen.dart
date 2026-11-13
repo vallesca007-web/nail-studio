@@ -215,7 +215,19 @@ class _CitasScreenState extends State<CitasScreen> {
         customerName: session.displayName,
         customerEmail: session.email,
       );
-      await AppointmentStore.instance.save(appointment);
+      try {
+        await AppointmentStore.instance.save(appointment);
+      } on Exception catch (error) {
+        try {
+          await _calendar.deleteAppointment(eventId);
+        } on Exception catch (rollbackError) {
+          throw StateError(
+            'No se guardó la cita en la base de datos ($error) y tampoco '
+            'se pudo cancelar en Google Calendar ($rollbackError).',
+          );
+        }
+        rethrow;
+      }
       if (!mounted) return;
       Navigator.pushReplacement(
         context,

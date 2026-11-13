@@ -1,4 +1,9 @@
 class AppConfig {
+  static const apiBaseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'http://localhost:3000/api',
+  );
+
   // TODO: Configurar los OAuth Client ID de las aplicaciones Android y web.
   static const googleClientId = 'YOUR_GOOGLE_OAUTH_CLIENT_ID';
   static const googleServerClientId = 'YOUR_GOOGLE_SERVER_CLIENT_ID';
