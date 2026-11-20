@@ -1,3 +1,5 @@
+const formatters = new Map();
+
 function parseDate(date) {
   if (typeof date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     return null;
@@ -15,16 +17,22 @@ function parseDate(date) {
 }
 
 function formatter(timeZone) {
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hourCycle: 'h23',
-  });
+  if (!formatters.has(timeZone)) {
+    formatters.set(
+      timeZone,
+      new Intl.DateTimeFormat('en-CA', {
+        timeZone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hourCycle: 'h23',
+      }),
+    );
+  }
+  return formatters.get(timeZone);
 }
 
 function partsAt(date, format) {
@@ -86,20 +94,22 @@ function localDayRange(date, timeZone) {
   return start && end ? { start, end } : null;
 }
 
-function formatLocalDateTime(date, timeZone) {
-  const parts = partsAt(date, formatter(timeZone));
-  return `${parts.year}-${String(parts.month).padStart(2, '0')}-${String(
-    parts.day,
-  ).padStart(2, '0')}T${String(parts.hour).padStart(2, '0')}:${String(
-    parts.minute,
-  ).padStart(2, '0')}:00`;
-}
-
-function dateInTimeZone(date, timeZone) {
-  const parts = partsAt(date, formatter(timeZone));
+function formatDate(parts) {
   return `${parts.year}-${String(parts.month).padStart(2, '0')}-${String(
     parts.day,
   ).padStart(2, '0')}`;
+}
+
+function formatLocalDateTime(date, timeZone) {
+  const parts = partsAt(date, formatter(timeZone));
+  return `${formatDate(parts)}T${String(parts.hour).padStart(
+    2,
+    '0',
+  )}:${String(parts.minute).padStart(2, '0')}:00`;
+}
+
+function dateInTimeZone(date, timeZone) {
+  return formatDate(partsAt(date, formatter(timeZone)));
 }
 
 function weekday(date) {

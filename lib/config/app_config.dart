@@ -14,9 +14,10 @@ class AppConfig {
     return 'http://10.0.2.2:3000/api';
   }
 
-  // TODO: Configurar los OAuth Client ID de las aplicaciones Android y web.
-  static const googleClientId = 'YOUR_GOOGLE_OAUTH_CLIENT_ID';
-  static const googleServerClientId = 'YOUR_GOOGLE_SERVER_CLIENT_ID';
+  // Android resuelve el client nativo mediante el package name y SHA-1.
+  static const googleClientId = '';
+  static const googleServerClientId =
+      '508896308195-h7r0cm8302k69n9hosmtu95qn93dn5mi.apps.googleusercontent.com';
 
   // TODO: Sustituir por el ID real del calendario del estudio.
   static const calendarId = 'YOUR_STUDIO_CALENDAR_ID';

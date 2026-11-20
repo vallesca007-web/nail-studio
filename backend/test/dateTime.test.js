@@ -2,10 +2,21 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const {
+  dateInTimeZone,
+  formatLocalDateTime,
   localDateTimeToDate,
   localDayRange,
   parseDate,
 } = require('../src/services/dateTime');
+
+test('formats local dates and times consistently', () => {
+  const instant = new Date('2026-01-15T16:07:45.000Z');
+  assert.equal(dateInTimeZone(instant, 'America/Mexico_City'), '2026-01-15');
+  assert.equal(
+    formatLocalDateTime(instant, 'America/Mexico_City'),
+    '2026-01-15T10:07:00',
+  );
+});
 
 test('converts the studio wall time to the correct instant', () => {
   assert.equal(

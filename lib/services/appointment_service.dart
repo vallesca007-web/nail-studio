@@ -10,10 +10,12 @@ class AppointmentAvailability {
   const AppointmentAvailability({
     required this.morning,
     required this.afternoon,
+    this.price,
   });
 
   final List<DateTime> morning;
   final List<DateTime> afternoon;
+  final double? price;
 
   List<DateTime> get all => [...morning, ...afternoon];
 }
@@ -59,6 +61,7 @@ class AppointmentService {
       return AppointmentAvailability(
         morning: _parseTimes(dateValue, body['morning']),
         afternoon: _parseTimes(dateValue, body['afternoon']),
+        price: body['price'] is num ? (body['price'] as num).toDouble() : null,
       );
     } on http.ClientException {
       throw const AppointmentServiceException(
@@ -81,6 +84,7 @@ class AppointmentService {
     required DateTime time,
     required String customerName,
     required String idToken,
+    String? customerPhone,
   }) async {
     final dateValue =
         '${date.year.toString().padLeft(4, '0')}-'
@@ -102,6 +106,8 @@ class AppointmentService {
               'date': dateValue,
               'time': timeValue,
               'customerName': customerName,
+              if (customerPhone != null && customerPhone.trim().isNotEmpty)
+                'customerPhone': customerPhone.trim(),
             }),
           )
           .timeout(const Duration(seconds: 20));

@@ -9,12 +9,15 @@ CREATE TABLE IF NOT EXISTS services (
   name VARCHAR(160) NOT NULL,
   duration_minutes SMALLINT UNSIGNED NOT NULL,
   price DECIMAL(10, 2) NOT NULL,
+  description VARCHAR(500) NOT NULL DEFAULT '',
+  category VARCHAR(100) NOT NULL DEFAULT 'General',
   active BOOLEAN NOT NULL DEFAULT TRUE
 );
 
 INSERT INTO services (service_id, name, duration_minutes, price, active)
 VALUES (
-  'Manicura & Esmaltado',
+  'signature-manicura-rusa',
+  'Manicura Rusa & Esmaltado',
   60,
   45.00,
   TRUE
@@ -34,6 +37,10 @@ CREATE TABLE IF NOT EXISTS appointments (
   end_at DATETIME(3) NOT NULL,
   customer_name VARCHAR(160) NOT NULL,
   customer_email VARCHAR(254) NOT NULL,
+  customer_phone VARCHAR(32) NULL,
+  status VARCHAR(20) NOT NULL DEFAULT 'pendiente',
+  specialist_id VARCHAR(64) NULL,
+  price DECIMAL(10, 2) NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_appointments_service
     FOREIGN KEY (service_id) REFERENCES services (service_id),

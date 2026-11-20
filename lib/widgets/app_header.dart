@@ -25,8 +25,15 @@ class AppHeader extends StatelessWidget {
             child: Image.asset('assets/images/logo.png', fit: BoxFit.contain),
           ),
           const SizedBox(width: 10),
-          Text('Anne Nails', style: AppTheme.titleStyle.copyWith(fontSize: 19)),
-          const Spacer(),
+          Expanded(
+            child: Text(
+              'Anne Nails',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppTheme.titleStyle.copyWith(fontSize: 19),
+            ),
+          ),
+          const SizedBox(width: 10),
           Material(
             color: AppTheme.button,
             shape: const CircleBorder(),

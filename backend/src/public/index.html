@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Anne Nail Studio - Administración</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&family=Playfair+Display:wght@700&display=display" rel="stylesheet">
+  <link rel="stylesheet" href="/admin/admin.css">
+</head>
+<body>
+  <main id="app">
+    <section id="loginView" class="login-view">
+      <form id="loginForm" class="login-card">
+        <img src="/admin/logo.png" alt="Anne Nail Studio" class="logo" onerror="this.style.display='none'">
+        <p class="eyebrow">Anne Nail Studio</p>
+        <h1>Administración</h1>
+        <label>Usuario<input id="loginUser" name="user" autocomplete="username" required></label>
+        <label>Contraseña<input id="loginPassword" name="password" type="password" autocomplete="current-password" required></label>
+        <button class="primary" type="submit">Iniciar sesión</button>
+        <p id="loginMessage" class="message" role="alert"></p>
+      </form>
+    </section>
+
+    <section id="adminView" class="admin-view hidden">
+      <aside class="sidebar">
+        <div class="brand"><span class="brand-mark">A</span><strong>Anne Nail Studio</strong></div>
+        <nav>
+          <button class="nav-button active" data-section="appointments">Citas</button>
+          <button class="nav-button" data-section="specialists">Manicuristas</button>
+          <button class="nav-button" data-section="services">Servicios</button>
+        </nav>
+        <button id="logoutButton" class="logout">Cerrar sesión</button>
+      </aside>
+      <div class="content">
+        <header class="topbar"><h1 id="sectionTitle">Citas</h1></header>
+        <div id="loading" class="loading hidden">Cargando...</div>
+        <div id="message" class="message" role="status"></div>
+
+        <section id="appointmentsSection" class="section">
+          <div class="tabs">
+            <button class="tab active" data-status="pendiente">Pendientes</button>
+            <button class="tab" data-status="agendada">Agendadas</button>
+          </div>
+          <div class="filters">
+            <input id="appointmentSearch" type="search" placeholder="Buscar por clienta">
+            <input id="appointmentDate" type="date">
+          </div>
+          <div id="appointmentsList" class="card-list"></div>
+        </section>
+
+        <section id="specialistsSection" class="section hidden">
+          <button id="addSpecialistButton" class="primary">Agregar manicurista</button>
+          <form id="specialistForm" class="inline-form hidden">
+            <input name="name" placeholder="Nombre" maxlength="160" required>
+            <input name="specialty" placeholder="Especialidad" maxlength="160">
+            <input name="photoUrl" placeholder="URL de foto opcional" maxlength="1024">
+            <button class="primary" type="submit">Guardar</button>
+          </form>
+          <div id="specialistsList" class="card-list"></div>
+        </section>
+
+        <section id="servicesSection" class="section hidden">
+          <div class="toolbar">
+            <button id="addServiceButton" class="primary">Agregar servicio</button>
+            <button id="adjustPricesButton" class="secondary">Ajustar precios</button>
+          </div>
+          <form id="serviceForm" class="service-form hidden">
+            <input name="name" placeholder="Nombre" maxlength="160" required>
+            <input name="description" placeholder="Descripción" maxlength="500">
+            <input name="category" placeholder="Categoría" maxlength="100">
+            <input name="durationMinutes" type="number" min="1" max="1440" placeholder="Duración (minutos)" required>
+            <input name="price" type="number" min="0.01" step="0.01" placeholder="Precio" required>
+            <button class="primary" type="submit">Guardar</button>
+          </form>
+          <form id="adjustForm" class="service-form hidden">
+            <select name="type"><option value="percentage">Porcentaje</option><option value="fixed">Monto fijo</option></select>
+            <select name="direction"><option value="up">Subir</option><option value="down">Bajar</option></select>
+            <input name="amount" type="number" min="0.01" step="0.01" placeholder="Cantidad" required>
+            <select name="scope"><option value="all">Todos los servicios</option><option value="one">Un servicio</option></select>
+            <select name="serviceId" id="priceServiceId" class="hidden"></select>
+            <button id="previewAdjustButton" class="secondary" type="button">Vista previa</button>
+            <button id="applyAdjustButton" class="primary hidden" type="button">Aplicar</button>
+          </form>
+          <div id="pricePreview" class="card-list"></div>
+          <div id="servicesList" class="card-list"></div>
+        </section>
+      </div>
+    </section>
+  </main>
+  <script src="/admin/admin.js"></script>
+</body>
+</html>

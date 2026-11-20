@@ -3,7 +3,10 @@ const { google } = require('googleapis');
 
 const { localDayRange } = require('./dateTime');
 
-const scope = 'https://www.googleapis.com/auth/calendar.events';
+const scopes = [
+  'https://www.googleapis.com/auth/calendar.events',
+  'https://www.googleapis.com/auth/calendar.freebusy',
+];
 let calendarApi;
 
 function configuredCalendarId() {
@@ -25,12 +28,12 @@ function getCalendarApi() {
     } catch {
       throw new Error('GOOGLE_SERVICE_ACCOUNT_JSON no contiene JSON válido.');
     }
-    auth = new google.auth.GoogleAuth({ credentials, scopes: [scope] });
+    auth = new google.auth.GoogleAuth({ credentials, scopes });
   } else if (file) {
     if (!fs.existsSync(file)) {
       throw new Error('No se encontró el archivo GOOGLE_APPLICATION_CREDENTIALS.');
     }
-    auth = new google.auth.GoogleAuth({ keyFile: file, scopes: [scope] });
+    auth = new google.auth.GoogleAuth({ keyFile: file, scopes });
   } else {
     throw new Error(
       'Configura GOOGLE_SERVICE_ACCOUNT_JSON o GOOGLE_APPLICATION_CREDENTIALS.',
@@ -65,25 +68,23 @@ async function createEvent({
   serviceName,
   customerName,
   customerEmail,
+  customerPhone,
   start,
   end,
 }) {
   const timeZone = process.env.TIMEZONE || 'America/Mexico_City';
   const response = await getCalendarApi().events.insert({
     calendarId: configuredCalendarId(),
-    sendUpdates: customerEmail ? 'all' : 'none',
     requestBody: {
       summary: `${serviceName} - ${customerName}`,
       description: [
         `Clienta: ${customerName}`,
         `Correo: ${customerEmail}`,
+        `Teléfono: ${customerPhone || 'No proporcionado'}`,
         `Servicio: ${serviceName}`,
       ].join('\n'),
       start: { dateTime: start.toISOString(), timeZone },
       end: { dateTime: end.toISOString(), timeZone },
-      ...(customerEmail
-        ? { attendees: [{ email: customerEmail }] }
-        : {}),
     },
   });
   if (!response.data.id) {
@@ -100,4 +101,17 @@ async function deleteEvent(eventId) {
   });
 }
 
-module.exports = { createEvent, deleteEvent, getBusyRanges };
+async function updateEventTitle(eventId, title) {
+  await getCalendarApi().events.patch({
+    calendarId: configuredCalendarId(),
+    eventId,
+    requestBody: { summary: title },
+  });
+}
+
+module.exports = {
+  createEvent,
+  deleteEvent,
+  getBusyRanges,
+  updateEventTitle,
+};

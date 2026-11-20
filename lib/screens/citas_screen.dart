@@ -39,11 +39,19 @@ class _CitasScreenState extends State<CitasScreen> {
   bool _booking = false;
   String? _errorMessage;
   int _availabilityRequest = 0;
+  double _servicePrice = AppConfig.signatureServicePrice;
+  final TextEditingController _phoneController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _loadSlots();
+  }
+
+  @override
+  void dispose() {
+    _phoneController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadSlots() async {
@@ -62,6 +70,7 @@ class _CitasScreenState extends State<CitasScreen> {
       if (!mounted || request != _availabilityRequest) return;
       setState(() {
         _availableSlots = availability.all;
+        if (availability.price != null) _servicePrice = availability.price!;
         _loadingSlots = false;
       });
     } on AppointmentServiceException catch (error) {
@@ -136,6 +145,7 @@ class _CitasScreenState extends State<CitasScreen> {
         time: slot,
         customerName: session.displayName,
         idToken: idToken,
+        customerPhone: _phoneController.text,
       );
       if (!mounted) return;
       Navigator.pushReplacement(
@@ -262,6 +272,16 @@ class _CitasScreenState extends State<CitasScreen> {
                   ),
                   const SizedBox(height: 17),
                   _serviceCard(),
+                  const SizedBox(height: 14),
+                  TextField(
+                    controller: _phoneController,
+                    keyboardType: TextInputType.phone,
+                    decoration: const InputDecoration(
+                      labelText: 'Teléfono (opcional)',
+                      hintText: 'Ej. 656 123 4567',
+                      prefixIcon: Icon(Icons.phone_outlined),
+                    ),
+                  ),
                   const SizedBox(height: 23),
                   _sectionHeader('PASO 01', 'Selecciona Fecha'),
                   const SizedBox(height: 12),
@@ -340,7 +360,7 @@ class _CitasScreenState extends State<CitasScreen> {
 
   Widget _serviceCard() {
     final price = NumberFormat.currency(name: AppConfig.currencyCode)
-        .format(AppConfig.signatureServicePrice);
+        .format(_servicePrice);
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
