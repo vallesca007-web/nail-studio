@@ -12,12 +12,14 @@ Aplicacion Flutter, API Node.js, MySQL local y Google Calendar.
 
 ## Base de datos
 
-Los scripts usan el `DB_NAME` del `.env` (por defecto `AnneNail`): crean esa
-base si no existe, la seleccionan y aplican el SQL. El nombre de la base no
-esta fijo en los archivos `.sql`.
+Los scripts usan el `DB_NAME` del `.env` (por defecto `anne_nail_studio`): crean
+esa base si no existe, la seleccionan y aplican el SQL. El nombre de la base no
+esta fijo en los archivos `.sql`. Si tu base ya existe con otro nombre, cambia
+solo `DB_NAME` en el `.env`.
 
-El `.env` puede estar en la raiz del repo o en `backend/`; al arrancar, la API
-imprime de cual lo leyo. Para comprobar la conexion sin levantar el servidor:
+El `.env` se lee desde la raiz del repo (tambien se acepta `backend/.env`); al
+arrancar, la API imprime de cual lo leyo. Para comprobar la conexion sin
+levantar el servidor:
 
 ```powershell
 npm run db:check
@@ -27,15 +29,7 @@ npm run db:check
 de error de MySQL con la causa (servidor apagado, credenciales, base o tablas
 faltantes).
 
-Si tu MySQL ya tiene la base `AnneNail`, solo faltan las tablas. Desde
-`backend/`:
-
-```powershell
-npm run db:schema
-npm run db:seed
-```
-
-Si prefieres un usuario propio en lugar de `root`:
+Para crear el usuario de la app y aplicar el esquema:
 
 ```powershell
 npm run db:setup
@@ -43,7 +37,10 @@ npm run db:schema
 npm run db:seed
 ```
 
-`db:setup` solicita la contraseña root y crea `anne_nail_app` con `DB_PASSWORD`.
+`db:setup` crea `anne_nail_app` con el `DB_PASSWORD` del `.env` y le da solo
+SELECT, INSERT, UPDATE y DELETE sobre la base. Los tres comandos piden la
+contraseña de root de MySQL en la terminal y no la guardan. Si no quieres
+escribirla cada vez, define `DB_ROOT_PASSWORD` en el `.env`.
 
 Para actualizar una base que ya tiene datos, sin borrarlos:
 
@@ -54,9 +51,8 @@ npm run db:upgrade
 `db:upgrade` agrega los indices y restricciones de `upgrade.sql` a las tablas
 existentes. Se ejecuta una sola vez por base.
 
-Si la base `AnneNail` tiene tablas viejas (por ejemplo `citas` con `fecha_hora`
-en lugar de `fecha` y `hora`) y no hay datos que conservar, se puede recrear
-vacia:
+Si la base tiene tablas viejas (por ejemplo `citas` con `fecha_hora` en lugar de
+`fecha` y `hora`) y no hay datos que conservar, se puede recrear vacia:
 
 ```powershell
 npm run db:reset
@@ -80,11 +76,12 @@ Archivos fuente:
 ```dotenv
 DB_HOST=127.0.0.1
 DB_PORT=3306
-DB_NAME=AnneNail
-DB_USER=root
-DB_PASSWORD=contrasena-root-de-tu-mysql
-JWT_SECRET=cambia-este-secreto
+DB_NAME=anne_nail_studio
+DB_USER=anne_nail_app
+DB_PASSWORD=generada-por-env-init
+JWT_SECRET=generado-por-env-init
 
+# Opcional: sin calendario ni credenciales la agenda se controla solo con MySQL.
 GOOGLE_CALENDAR_ID=tu-calendario@group.calendar.google.com
 GOOGLE_APPLICATION_CREDENTIALS=./backend/.credentials/service-account.json
 GOOGLE_OAUTH_CLIENT_ID=tu-client-id-web.apps.googleusercontent.com
@@ -100,11 +97,12 @@ ADMIN_USER=anneadmin
 ADMIN_PASSWORD_HASH=
 ```
 
-Copia `.env.example` a `.env` en la raiz del repo (o en `backend/`) y reemplaza
-todos los marcadores:
+Crea el `.env` en la raiz del repo con `env:init`: copia `.env.example`, genera
+`JWT_SECRET` (64 caracteres hexadecimales) y `DB_PASSWORD` (aleatoria), y si ya
+existe un `.env` conserva sus valores y solo agrega los que falten.
 
 ```powershell
-Copy-Item .env.example .env
+npm run env:init
 notepad .env
 ```
 
@@ -153,7 +151,7 @@ Flutter Web usa `http://localhost:3000/api`.
 |---|---|---|---|---|
 | POST | `/api/auth/register` | `{correo, contrasena}` | Usuario creado | 201,400,409,500 |
 | POST | `/api/auth/login` | `{correo, contrasena}` | `{token, correo, id}` | 200,400,401,500 |
-| GET | `/api/health` | Ninguna | Estado de API y MySQL | 200,500 |
+| GET | `/api/health` | Ninguna | Estado de API y MySQL | 200,503 |
 | GET | `/api/availability` | `date`, `serviceId` | Horarios por mañana y tarde | 200,400,404,502 |
 | POST | `/api/appointments` | `servicio_id`, `fecha`, `hora`, `telefono?` con Bearer JWT | Cita pendiente | 201,400,401,404,409,502,500 |
 | GET | `/api/appointments/mine` | Bearer JWT | Citas propias | 200,401,500 |

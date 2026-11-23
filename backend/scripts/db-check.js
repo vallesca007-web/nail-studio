@@ -9,7 +9,7 @@ const settings = {
   port: Number(process.env.DB_PORT || 3306),
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'AnneNail',
+  database: process.env.DB_NAME || 'anne_nail_studio',
 };
 
 const hints = {

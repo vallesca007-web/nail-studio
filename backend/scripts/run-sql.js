@@ -14,7 +14,7 @@ const files = {
 };
 
 const type = process.argv[2];
-const dbName = process.env.DB_NAME || 'AnneNail';
+const dbName = process.env.DB_NAME || 'anne_nail_studio';
 let connection;
 
 function ask(question, fallbackMessage) {
@@ -104,12 +104,13 @@ async function main() {
     if (answer.trim() !== dbName) throw new Error('Cancelado: no se borro nada.');
   }
 
-  const useRoot = type === 'setup-local';
+  // Esquema, semilla y permisos son tareas administrativas: se hacen como root
+  // para que el usuario de la app no necesite CREATE/ALTER/DROP.
   connection = await mysql.createConnection({
     host: process.env.DB_HOST || '127.0.0.1',
     port: Number(process.env.DB_PORT || 3306),
-    user: useRoot ? 'root' : (process.env.DB_USER || 'root'),
-    password: useRoot ? await rootPassword() : (process.env.DB_PASSWORD || ''),
+    user: 'root',
+    password: await rootPassword(),
     multipleStatements: true,
   });
 

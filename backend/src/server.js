@@ -3,10 +3,6 @@ const { loadEnvironment } = require('./config/env');
 
 loadEnvironment();
 
-if (!process.env.JWT_SECRET) {
-  console.warn('Falta JWT_SECRET en el .env: el inicio de sesion fallara.');
-}
-
 const express = require('express');
 const cookieParser = require('cookie-parser');
 const helmet = require('helmet');
@@ -32,7 +28,7 @@ const pool = createPool({
   port: Number(process.env.DB_PORT || 3306),
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'AnneNail',
+  database: process.env.DB_NAME || 'anne_nail_studio',
   connectionLimit: 10,
   timezone: 'Z',
   multipleStatements: true,
