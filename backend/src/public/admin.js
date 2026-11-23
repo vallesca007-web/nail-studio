@@ -131,13 +131,31 @@ async function loadAppointments() {
           Manicurista: ${escapeHtml(row.manicurista || 'Sin asignar')}<br>
           ${dateText} · ${timeText}
         </div>
-        ${row.estado === 'pendiente'
-          ? `<button class="primary confirm-button" data-id="${escapeHtml(row.id)}">Confirmar</button>`
-          : ''}
+        <div class="card-actions">
+          ${row.estado === 'pendiente'
+            ? `<button class="primary confirm-button" data-id="${escapeHtml(row.id)}">Confirmar</button>
+               <button class="secondary reject-button" data-id="${escapeHtml(row.id)}">Rechazar</button>`
+            : ''}
+          ${row.estado === 'agendada'
+            ? `<button class="secondary cancel-button" data-id="${escapeHtml(row.id)}">Cancelar cita</button>`
+            : ''}
+        </div>
       </article>`;
     }).join('');
     document.querySelectorAll('.confirm-button').forEach((button) => {
       button.addEventListener('click', () => confirmAppointment(button.dataset.id));
+    });
+    document.querySelectorAll('.reject-button').forEach((button) => {
+      button.addEventListener('click', () => {
+        if (!confirm('¿Rechazar esta solicitud de cita?')) return;
+        changeAppointmentStatus(button.dataset.id, 'reject', 'Cita rechazada.');
+      });
+    });
+    document.querySelectorAll('.cancel-button').forEach((button) => {
+      button.addEventListener('click', () => {
+        if (!confirm('¿Cancelar esta cita?')) return;
+        changeAppointmentStatus(button.dataset.id, 'cancel', 'Cita cancelada.');
+      });
     });
   } catch (error) {
     message(error.message, true);
@@ -153,6 +171,19 @@ async function confirmAppointment(eventId) {
       body: '{}',
     });
     message('Cita confirmada.');
+    await loadAppointments();
+  } catch (error) {
+    message(error.message, true);
+  }
+}
+
+async function changeAppointmentStatus(id, action, successMessage) {
+  try {
+    await api(`/api/admin/appointments/${encodeURIComponent(id)}/${action}`, {
+      method: 'POST',
+      body: '{}',
+    });
+    message(successMessage);
     await loadAppointments();
   } catch (error) {
     message(error.message, true);

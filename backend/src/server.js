@@ -129,7 +129,7 @@ async function getAvailableSlots(date, service) {
   const [rows] = await pool.execute(
     `SELECT hora, hora_fin
      FROM citas
-     WHERE fecha = ? AND estado <> 'cancelada'`,
+     WHERE fecha = ? AND estado NOT IN ('cancelada', 'rechazada')`,
     [date],
   );
   const databaseBusy = rows.map((row) => ({
@@ -282,7 +282,7 @@ app.post('/api/appointments', requireUser, asyncHandler(async (request, response
 
     const [rows] = await connection.execute(
       `SELECT hora, hora_fin FROM citas
-       WHERE fecha = ? AND estado <> 'cancelada'
+       WHERE fecha = ? AND estado NOT IN ('cancelada', 'rechazada')
        AND hora < ? AND hora_fin > ?
        FOR UPDATE`,
       [date, formatLocalDateTime(end, timeZone).slice(11, 16), time],

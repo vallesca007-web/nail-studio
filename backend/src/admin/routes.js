@@ -223,6 +223,9 @@ module.exports = function createAdminRoutes(pool) {
       );
       if (!rows.length) return response.status(404).json({ error: 'Cita inexistente.' });
       const cita = rows[0];
+      if (cita.estado !== 'pendiente') {
+        return response.status(409).json({ error: `La cita ya está ${cita.estado}.` });
+      }
       let manicuristaId = request.body?.manicurista_id ? Number(request.body.manicurista_id) : null;
       if (manicuristaId) {
         const [manicuristas] = await pool.execute(
@@ -251,6 +254,49 @@ module.exports = function createAdminRoutes(pool) {
       next(error);
     }
   });
+
+  // Cambia el estado de una cita y libera el horario en la agenda. El evento de
+  // Google Calendar solo se borra si se borra bien; si falla se conserva el id.
+  async function changeAppointmentStatus(request, response, next, estado, from) {
+    try {
+      const [rows] = await pool.execute(
+        'SELECT id,estado,google_event_id FROM citas WHERE id=?',
+        [request.params.id],
+      );
+      if (!rows.length) return response.status(404).json({ error: 'Cita inexistente.' });
+      const cita = rows[0];
+      if (!from.includes(cita.estado)) {
+        return response.status(409).json({ error: `La cita ya está ${cita.estado}.` });
+      }
+      let googleEventId = cita.google_event_id;
+      if (googleEventId) {
+        try {
+          await googleCalendar.deleteEvent(googleEventId);
+          googleEventId = null;
+        } catch (error) {
+          console.error('No se pudo borrar el evento de Google Calendar:', error.message);
+        }
+      }
+      await pool.execute('UPDATE citas SET estado=?, google_event_id=? WHERE id=?', [
+        estado,
+        googleEventId,
+        cita.id,
+      ]);
+      response.json({ ok: true, estado });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // Rechazar solo aplica a una solicitud pendiente; cancelar también sirve para
+  // una cita que ya estaba confirmada.
+  router.post('/appointments/:id/reject', requireAdmin, (request, response, next) =>
+    changeAppointmentStatus(request, response, next, 'rechazada', ['pendiente']),
+  );
+
+  router.post('/appointments/:id/cancel', requireAdmin, (request, response, next) =>
+    changeAppointmentStatus(request, response, next, 'cancelada', ['pendiente', 'agendada']),
+  );
 
   return router;
 };

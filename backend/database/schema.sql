@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS citas (
   hora_fin TIME NOT NULL,
   precio DECIMAL(10,2) NOT NULL,
   telefono VARCHAR(32) NULL,
-  estado ENUM('pendiente','agendada','cancelada') NOT NULL DEFAULT 'pendiente',
+  estado ENUM('pendiente','agendada','cancelada','rechazada') NOT NULL DEFAULT 'pendiente',
   google_event_id VARCHAR(255) NULL,
   creado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT chk_citas_horario CHECK (hora_fin > hora),

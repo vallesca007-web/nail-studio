@@ -11,6 +11,7 @@ const files = {
   schema: '../database/schema.sql',
   seed: '../database/seed.sql',
   upgrade: '../database/upgrade.sql',
+  ensure: '../database/ensure.sql',
 };
 
 const type = process.argv[2];
@@ -128,6 +129,9 @@ async function main() {
   } else {
     await connection.query(sql);
   }
+  // Los ajustes de ensure.sql son idempotentes y dejan al dia una base creada
+  // con una version anterior del esquema.
+  if (type === 'schema' || type === 'reset') await connection.query(readSql('ensure'));
 
   if (type === 'schema') await warnIfLegacy();
 

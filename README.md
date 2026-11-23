@@ -42,6 +42,10 @@ SELECT, INSERT, UPDATE y DELETE sobre la base. Los tres comandos piden la
 contraseña de root de MySQL en la terminal y no la guardan. Si no quieres
 escribirla cada vez, define `DB_ROOT_PASSWORD` en el `.env`.
 
+`db:schema` aplica también `backend/database/ensure.sql`, que solo ajusta el
+estado de las citas, así que puedes repetirlo sobre una base con datos cuando
+el proyecto agregue un estado nuevo.
+
 Para actualizar una base que ya tiene datos, sin borrarlos:
 
 ```powershell
@@ -157,6 +161,8 @@ Flutter Web usa `http://localhost:3000/api`.
 | GET | `/api/appointments/mine` | Bearer JWT | Citas propias | 200,401,500 |
 | POST | `/api/admin/login` | `{user, password}` | Cookie JWT | 200,400,401 |
 | GET/POST/PUT/DELETE | `/api/admin/*` | Datos administrativos | CRUD y confirmacion | 401,400,404,409,500 |
+| POST | `/api/admin/appointments/:id/reject` | Cookie admin | Rechaza una cita `pendiente` | 200,401,404,409 |
+| POST | `/api/admin/appointments/:id/cancel` | Cookie admin | Cancela una cita `pendiente` o `agendada` | 200,401,404,409 |
 | GET | `/admin/` | Ninguna | Panel HTML | 200 |
 
 ## Pruebas
@@ -176,7 +182,9 @@ Pruebas manuales recomendadas:
 4. Verificar que se crea con estado `pendiente`.
 5. Confirmar desde `/admin/`.
 6. Verificar estado `agendada` y `manicurista_id` en MySQL.
-7. Verificar el evento en Google Calendar.
+7. Rechazar otra cita pendiente o cancelar la agendada desde `/admin/` y
+   verificar que el horario vuelve a aparecer en `/api/availability`.
+8. Verificar el evento en Google Calendar.
 
 ## Problema: "No pudimos conectar con el servidor"
 
