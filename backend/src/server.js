@@ -165,6 +165,21 @@ app.use(helmet({
     },
   },
 }));
+// La app Flutter Web corre en otro puerto local; sin esto el navegador bloquea
+// las peticiones y la app muestra "No pudimos conectar con el servidor".
+const localOrigin = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
+app.use((request, response, next) => {
+  const origin = request.headers.origin;
+  if (origin && localOrigin.test(origin)) {
+    response.setHeader('Access-Control-Allow-Origin', origin);
+    response.setHeader('Vary', 'Origin');
+    response.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type');
+    response.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    response.setHeader('Access-Control-Max-Age', '600');
+  }
+  if (request.method === 'OPTIONS') return response.sendStatus(204);
+  return next();
+});
 app.use(express.json({ limit: '16kb' }));
 app.use(cookieParser());
 

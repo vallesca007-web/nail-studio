@@ -6,7 +6,12 @@ class AppConfig {
     if (environmentValue.isNotEmpty) {
       return environmentValue;
     }
-    return kIsWeb ? 'http://localhost:3000/api' : 'http://10.0.2.2:3000/api';
+    // 10.0.2.2 solo existe dentro del emulador Android; el resto usa localhost.
+    final androidEmulator =
+        !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+    return androidEmulator
+        ? 'http://10.0.2.2:3000/api'
+        : 'http://localhost:3000/api';
   }
 
   // Android resuelve el client nativo mediante el package name y SHA-1.

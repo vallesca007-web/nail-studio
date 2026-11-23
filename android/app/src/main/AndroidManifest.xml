@@ -1,9 +1,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- La API del estudio usa HTTP local (10.0.2.2 o IP de la red); Android 9+
+         bloquea ese trafico por defecto y la app no puede reservar. -->
     <application
         android:label="anne_nail_studio"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:usesCleartextTraffic="true">
         <activity
             android:name=".MainActivity"
             android:exported="true"

@@ -4,11 +4,13 @@ const readline = require('node:readline');
 const mysql = require('mysql2/promise');
 require('dotenv').config({ path: path.resolve(__dirname, '../../.env') });
 
+let connection;
 const type = process.argv[2];
 const files = {
   'setup-local': '../database/setup-local.sql',
   schema: '../database/schema.sql',
   seed: '../database/seed.sql',
+  upgrade: '../database/upgrade.sql',
 };
 
 async function rootPassword() {
@@ -26,7 +28,7 @@ async function rootPassword() {
 }
 
 async function main() {
-  if (!files[type]) throw new Error('Uso: npm run db:setup | db:schema | db:seed');
+  if (!files[type]) throw new Error('Uso: npm run db:setup | db:schema | db:seed | db:upgrade');
   const sqlPath = path.resolve(__dirname, files[type]);
   let sql = fs.readFileSync(sqlPath, 'utf8');
 
@@ -36,7 +38,7 @@ async function main() {
     sql = sql.replaceAll('REEMPLAZAR_CON_DB_PASSWORD', password);
   }
 
-  const connection = await mysql.createConnection({
+  connection = await mysql.createConnection({
     host: process.env.DB_HOST || '127.0.0.1',
     port: Number(process.env.DB_PORT || 3306),
     user: type === 'setup-local' ? 'root' : (process.env.DB_USER || 'anne_nail_app'),
@@ -51,7 +53,8 @@ async function main() {
   console.log(`Ejecutado ${path.basename(sqlPath)}.`);
 }
 
-main().catch((error) => {
+main().catch(async (error) => {
   console.error(error.message);
   process.exitCode = 1;
+  if (connection) await connection.end().catch(() => {});
 });

@@ -23,10 +23,20 @@ npm run db:seed
 `db:setup` solicita la contraseña root y reemplaza temporalmente el marcador
 de `setup-local.sql` con `DB_PASSWORD`.
 
+Para actualizar una base que ya tiene datos, sin borrarlos:
+
+```powershell
+npm run db:upgrade
+```
+
+`db:upgrade` agrega los indices y restricciones de `upgrade.sql` a las tablas
+existentes. Se ejecuta una sola vez por base.
+
 Archivos fuente:
 
 - `backend/database/setup-local.sql`
 - `backend/database/schema.sql`
+- `backend/database/upgrade.sql`
 - `backend/database/seed.sql`
 - `backend/database/backups/`
 
@@ -135,6 +145,25 @@ Pruebas manuales recomendadas:
 5. Confirmar desde `/admin/`.
 6. Verificar estado `agendada` y `manicurista_id` en MySQL.
 7. Verificar el evento en Google Calendar.
+
+## Problema: "No pudimos conectar con el servidor"
+
+Ese mensaje aparece cuando la app no alcanza la API, no cuando MySQL falla.
+Comprueba en este orden:
+
+1. La API debe estar corriendo (`npm start` en `backend/`) y responder en
+   <http://localhost:3000/api/health>.
+2. Emulador Android: usa `http://10.0.2.2:3000/api`, que es el valor por defecto.
+3. Teléfono físico: la computadora y el teléfono deben estar en la misma red y
+   la app debe apuntar a la IP local:
+
+   ```powershell
+   flutter run --dart-define=API_BASE_URL=http://192.168.1.50:3000/api
+   ```
+
+4. Flutter Web: la API ya permite peticiones desde `localhost` en cualquier
+   puerto (`backend/src/server.js`).
+5. Firewall de Windows: permite Node.js en la red privada.
 
 ## Seguridad
 
