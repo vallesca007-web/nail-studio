@@ -192,8 +192,18 @@ const loginLimiter = rateLimit({
 });
 
 app.get('/api/health', asyncHandler(async (request, response) => {
-  await pool.query('SELECT 1 FROM citas LIMIT 0');
-  response.json({ status: 'ok', database: 'connected' });
+  try {
+    await pool.query('SELECT 1 FROM citas LIMIT 0');
+    response.json({ status: 'ok', database: 'connected' });
+  } catch (error) {
+    // El codigo de MySQL distingue credenciales, base inexistente o servidor apagado.
+    console.error('La base de datos no responde:', error.code || error.message);
+    response.status(503).json({
+      status: 'error',
+      database: 'unavailable',
+      code: error.code || null,
+    });
+  }
 }));
 
 app.post('/api/auth/register', asyncHandler(async (request, response) => {
@@ -351,8 +361,14 @@ app.use((error, request, response, next) => {
 
 let server;
 if (require.main === module) {
-  server = app.listen(port, '0.0.0.0', () => {
+  server = app.listen(port, '0.0.0.0', async () => {
     console.log(`Anne Nail Studio API escuchando en el puerto ${port}`);
+    try {
+      await pool.query('SELECT 1');
+      console.log('MySQL conectado.');
+    } catch (error) {
+      console.error(`MySQL no responde: ${error.code || error.message}`);
+    }
   });
 }
 
