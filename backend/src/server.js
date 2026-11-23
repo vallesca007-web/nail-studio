@@ -24,9 +24,9 @@ const timeZone = process.env.TIMEZONE || 'America/Mexico_City';
 const pool = createPool({
   host: process.env.DB_HOST || '127.0.0.1',
   port: Number(process.env.DB_PORT || 3306),
-  user: process.env.DB_USER || 'anne_nail_app',
+  user: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'anne_nail_studio',
+  database: process.env.DB_NAME || 'AnneNail',
   connectionLimit: 10,
   timezone: 'Z',
   multipleStatements: true,

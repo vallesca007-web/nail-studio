@@ -1,5 +1,3 @@
-USE anne_nail_studio;
-
 INSERT INTO servicios (nombre, costo, duracion_min, activo)
 SELECT 'Manicura', 35.00, 45, TRUE
 WHERE NOT EXISTS (SELECT 1 FROM servicios WHERE nombre = 'Manicura');

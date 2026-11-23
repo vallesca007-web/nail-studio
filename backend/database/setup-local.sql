@@ -1,6 +1,4 @@
-CREATE DATABASE IF NOT EXISTS anne_nail_studio
-  CHARACTER SET utf8mb4
-  COLLATE utf8mb4_unicode_ci;
+-- La base (DB_NAME del .env) la crea scripts/run-sql.js.
 
 CREATE USER IF NOT EXISTS 'anne_nail_app'@'127.0.0.1'
   IDENTIFIED BY 'REEMPLAZAR_CON_DB_PASSWORD';
@@ -13,10 +11,10 @@ ALTER USER 'anne_nail_app'@'localhost'
   IDENTIFIED BY 'REEMPLAZAR_CON_DB_PASSWORD';
 
 GRANT SELECT, INSERT, UPDATE, DELETE
-  ON anne_nail_studio.*
+  ON __DB_NAME__.*
   TO 'anne_nail_app'@'127.0.0.1';
 GRANT SELECT, INSERT, UPDATE, DELETE
-  ON anne_nail_studio.*
+  ON __DB_NAME__.*
   TO 'anne_nail_app'@'localhost';
 
 FLUSH PRIVILEGES;

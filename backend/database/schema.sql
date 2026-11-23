@@ -1,11 +1,7 @@
 -- Esquema de Anne Nail Studio para MySQL 8.
 -- Mismas tablas y columnas que la version anterior; solo cambian indices,
 -- motor explicito y restricciones de integridad.
-
-CREATE DATABASE IF NOT EXISTS anne_nail_studio
-  CHARACTER SET utf8mb4
-  COLLATE utf8mb4_unicode_ci;
-USE anne_nail_studio;
+-- La base la crea y selecciona scripts/run-sql.js con el DB_NAME del .env.
 
 CREATE TABLE IF NOT EXISTS usuarios (
   id INT AUTO_INCREMENT PRIMARY KEY,

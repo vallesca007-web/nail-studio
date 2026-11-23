@@ -12,7 +12,19 @@ Aplicacion Flutter, API Node.js, MySQL local y Google Calendar.
 
 ## Base de datos
 
-Ejecuta estos scripts desde `backend/`:
+Los scripts usan el `DB_NAME` del `.env` (por defecto `AnneNail`): crean esa
+base si no existe, la seleccionan y aplican el SQL. El nombre de la base no
+esta fijo en los archivos `.sql`.
+
+Si tu MySQL ya tiene la base `AnneNail`, solo faltan las tablas. Desde
+`backend/`:
+
+```powershell
+npm run db:schema
+npm run db:seed
+```
+
+Si prefieres un usuario propio en lugar de `root`:
 
 ```powershell
 npm run db:setup
@@ -20,8 +32,7 @@ npm run db:schema
 npm run db:seed
 ```
 
-`db:setup` solicita la contraseña root y reemplaza temporalmente el marcador
-de `setup-local.sql` con `DB_PASSWORD`.
+`db:setup` solicita la contraseña root y crea `anne_nail_app` con `DB_PASSWORD`.
 
 Para actualizar una base que ya tiene datos, sin borrarlos:
 
@@ -31,6 +42,17 @@ npm run db:upgrade
 
 `db:upgrade` agrega los indices y restricciones de `upgrade.sql` a las tablas
 existentes. Se ejecuta una sola vez por base.
+
+Si la base `AnneNail` tiene tablas viejas (por ejemplo `citas` con `fecha_hora`
+en lugar de `fecha` y `hora`) y no hay datos que conservar, se puede recrear
+vacia:
+
+```powershell
+npm run db:reset
+```
+
+`db:reset` borra la base, la crea de nuevo y aplica `schema.sql` y `seed.sql`.
+Pide escribir el nombre de la base para confirmar.
 
 Archivos fuente:
 
@@ -47,9 +69,9 @@ Archivos fuente:
 ```dotenv
 DB_HOST=127.0.0.1
 DB_PORT=3306
-DB_NAME=anne_nail_studio
-DB_USER=anne_nail_app
-DB_PASSWORD=cambia-esta-contrasena
+DB_NAME=AnneNail
+DB_USER=root
+DB_PASSWORD=contrasena-root-de-tu-mysql
 JWT_SECRET=cambia-este-secreto
 
 GOOGLE_CALENDAR_ID=tu-calendario@group.calendar.google.com

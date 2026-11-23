@@ -1,9 +1,8 @@
 -- Migracion para una base creada con la version anterior de schema.sql.
 -- No borra ni modifica filas: solo agrega indices y restricciones.
--- Respalda antes: mysqldump -u root -p anne_nail_studio > respaldo.sql
+-- Respalda antes: mysqldump -u root -p <DB_NAME> > respaldo.sql
 -- Ejecutar una sola vez: npm run db:upgrade
-
-USE anne_nail_studio;
+-- SECCION: indices y restricciones
 
 ALTER TABLE servicios
   ADD INDEX idx_servicios_activo_nombre (activo, nombre);

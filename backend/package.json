@@ -10,7 +10,8 @@
     "db:setup": "node scripts/run-sql.js setup-local",
     "db:schema": "node scripts/run-sql.js schema",
     "db:seed": "node scripts/run-sql.js seed",
-    "db:upgrade": "node scripts/run-sql.js upgrade"
+    "db:upgrade": "node scripts/run-sql.js upgrade",
+    "db:reset": "node scripts/run-sql.js reset"
   },
   "engines": {
     "node": ">=20"
