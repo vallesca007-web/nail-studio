@@ -1,6 +1,7 @@
 const express = require('express');
 
 const googleCalendar = require('../services/googleCalendar');
+const { dateText, timeText } = require('../services/dateTime');
 const {
   cookieName,
   createAdminToken,
@@ -207,7 +208,14 @@ module.exports = function createAdminRoutes(pool) {
          ORDER BY c.fecha DESC,c.hora DESC`,
         params,
       );
-      response.json(rows);
+      response.json(
+        rows.map((row) => ({
+          ...row,
+          fecha: dateText(row.fecha),
+          hora: timeText(row.hora),
+          hora_fin: timeText(row.hora_fin),
+        })),
+      );
     } catch (error) {
       next(error);
     }

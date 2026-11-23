@@ -104,7 +104,10 @@ class _PerfilScreenState extends State<PerfilScreen> {
     final session = AppSession.instance;
     final appointments = _appointments ?? const <Appointment>[];
     final activeCount = appointments
-        .where((appointment) => appointment.start.isAfter(DateTime.now()))
+        .where(
+          (appointment) =>
+              appointment.start?.isAfter(DateTime.now()) ?? false,
+        )
         .length;
     // loadMine ordena de más antigua a más reciente.
     final recent = appointments.isEmpty ? null : appointments.last;
@@ -306,10 +309,10 @@ class _PerfilScreenState extends State<PerfilScreen> {
       );
     }
 
-    final date = DateFormat(
-      'EEEE, d MMM · HH:mm',
-      'es',
-    ).format(appointment.start);
+    final start = appointment.start;
+    final date = start == null
+        ? 'Fecha por confirmar'
+        : DateFormat('EEEE, d MMM · HH:mm', 'es').format(start);
     return _ActionCard(
       icon: Icons.spa_outlined,
       title: appointment.serviceName,
@@ -495,10 +498,12 @@ class _AppointmentHistorySheet extends StatelessWidget {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  DateFormat(
-                                    'EEEE, d MMMM · HH:mm',
-                                    'es',
-                                  ).format(appointment.start),
+                                  appointment.start == null
+                                      ? 'Fecha por confirmar'
+                                      : DateFormat(
+                                          'EEEE, d MMMM · HH:mm',
+                                          'es',
+                                        ).format(appointment.start!),
                                   style: const TextStyle(
                                     color: AppTheme.muted,
                                     fontSize: 11,
@@ -508,7 +513,7 @@ class _AppointmentHistorySheet extends StatelessWidget {
                             ),
                           ),
                           Icon(
-                            appointment.start.isAfter(DateTime.now())
+                            appointment.start?.isAfter(DateTime.now()) ?? false
                                 ? Icons.check_circle_outline
                                 : Icons.history,
                             color: AppTheme.accent,

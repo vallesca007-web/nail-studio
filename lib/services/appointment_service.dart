@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 
 import '../config/app_config.dart';
 import '../models/appointment.dart';
+import '../utils/date_time.dart';
 
 class AppointmentAvailability {
   const AppointmentAvailability({
@@ -116,7 +117,12 @@ class AppointmentService {
         throw const AppointmentServiceException(_invalidResponse);
       }
       return Appointment.fromJson(value);
-    }).toList()..sort((first, second) => first.start.compareTo(second.start));
+    }).toList()..sort((first, second) {
+      final firstStart = first.start;
+      final secondStart = second.start;
+      if (firstStart == null || secondStart == null) return 0;
+      return firstStart.compareTo(secondStart);
+    });
   }
 
   /// Envía la petición y traduce los fallos de red a mensajes para la usuaria.
@@ -160,7 +166,11 @@ class AppointmentService {
       if (value is! String || !RegExp(r'^\d{2}:\d{2}$').hasMatch(value)) {
         throw const AppointmentServiceException(_invalidResponse);
       }
-      return DateTime.parse('${date}T$value:00');
+      final parsed = parseStudioDateTime(date, value);
+      if (parsed == null) {
+        throw const AppointmentServiceException(_invalidResponse);
+      }
+      return parsed;
     }).toList();
   }
 

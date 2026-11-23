@@ -23,27 +23,41 @@ class _ConfirmacionCitaScreenState extends State<ConfirmacionCitaScreen> {
   // La API crea el evento en Google Calendar cuando está configurado y devuelve
   // su enlace. Si no lo está, se abre el formulario de Google Calendar ya
   // lleno con los datos de la cita.
-  Uri get _calendarUri {
+  Uri? get _calendarUri {
     final eventUrl = widget.appointment.eventUrl;
     if (eventUrl != null) return Uri.parse(eventUrl);
 
     final appointment = widget.appointment;
+    final start = appointment.start;
+    final end = appointment.end;
+    if (start == null || end == null) return null;
+
     final stamp = DateFormat("yyyyMMdd'T'HHmmss");
     return Uri.https('calendar.google.com', '/calendar/render', {
       'action': 'TEMPLATE',
       'text': '${appointment.serviceName} · ${AppConfig.studioName}',
-      'dates':
-          '${stamp.format(appointment.start)}/${stamp.format(appointment.end)}',
+      'dates': '${stamp.format(start)}/${stamp.format(end)}',
       'details': 'Código de reserva ${appointment.reservationCode}',
       'location': AppConfig.studioName,
     });
   }
 
   Future<void> _openCalendar() async {
+    final uri = _calendarUri;
+    if (uri == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'No pudimos leer la fecha de la cita. Contacta al estudio.',
+          ),
+        ),
+      );
+      return;
+    }
     setState(() => _openingCalendar = true);
     try {
       final opened = await launchUrl(
-        _calendarUri,
+        uri,
         mode: LaunchMode.externalApplication,
       );
       if (!opened) throw Exception('No se pudo abrir Google Calendar.');
@@ -60,9 +74,15 @@ class _ConfirmacionCitaScreenState extends State<ConfirmacionCitaScreen> {
   @override
   Widget build(BuildContext context) {
     final appointment = widget.appointment;
-    final date = DateFormat('EEEE d MMMM yyyy', 'es').format(appointment.start);
-    final time =
-        '${DateFormat('HH:mm').format(appointment.start)} – ${DateFormat('HH:mm').format(appointment.end)}';
+    final start = appointment.start;
+    final end = appointment.end;
+    final date = start == null
+        ? 'Fecha por confirmar'
+        : DateFormat('EEEE d MMMM yyyy', 'es').format(start);
+    final time = start == null || end == null
+        ? 'Hora por confirmar'
+        : '${DateFormat('HH:mm').format(start)} – '
+              '${DateFormat('HH:mm').format(end)}';
     final code = appointment.reservationCode;
 
     return Scaffold(
@@ -131,16 +151,28 @@ class _ConfirmacionCitaScreenState extends State<ConfirmacionCitaScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  const Text(
-                    'Recibirás los detalles por correo. Para coordinar por WhatsApp, '
-                    'contacta directamente con el estudio.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: AppTheme.muted,
-                      fontSize: 12,
-                      height: 1.5,
+                  if (start == null)
+                    const Text(
+                      'No pudimos leer la fecha de la cita. Escríbenos para '
+                      'confirmarla.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: AppTheme.accent,
+                        fontSize: 12,
+                        height: 1.5,
+                      ),
+                    )
+                  else
+                    const Text(
+                      'Recibirás los detalles por correo. Para coordinar por WhatsApp, '
+                      'contacta directamente con el estudio.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: AppTheme.muted,
+                        fontSize: 12,
+                        height: 1.5,
+                      ),
                     ),
-                  ),
                   const SizedBox(height: 22),
                   PillButton(
                     label: _openingCalendar

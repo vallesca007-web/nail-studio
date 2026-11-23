@@ -165,6 +165,19 @@ Flutter Web usa `http://localhost:3000/api`.
 | POST | `/api/admin/appointments/:id/cancel` | Cookie admin | Cancela una cita `pendiente` o `agendada` | 200,401,404,409 |
 | GET | `/admin/` | Ninguna | Panel HTML | 200 |
 
+## Formato de fechas y horas
+
+La API responde siempre `fecha` como `YYYY-MM-DD` y `hora` / `hora_fin` como
+`HH:MM`, sin segundos ni zona horaria, en `POST /api/appointments`,
+`GET /api/appointments/mine` y `/api/admin/appointments`.
+
+La conexion usa `dateStrings: ['DATE']`, de modo que MySQL entrega la fecha como
+texto y no la convierte a UTC: una cita del 24 a las 10:00 no cambia de dia por
+la zona horaria del estudio (`America/Mexico_City`).
+
+La app arma el `DateTime` con `parseStudioDateTime` (`lib/utils/date_time.dart`),
+que tolera `2026-11-24`, `2026-11-24T00:00:00.000Z`, `10:00` y `10:00:00`.
+
 ## Pruebas
 
 ```powershell

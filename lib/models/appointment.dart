@@ -1,3 +1,5 @@
+import '../utils/date_time.dart';
+
 class Appointment {
   const Appointment({
     required this.id,
@@ -15,8 +17,9 @@ class Appointment {
   final String estado;
   final String? eventUrl;
 
-  DateTime get start => DateTime.parse('${fecha}T$hora:00');
-  DateTime get end => start.add(const Duration(minutes: 60));
+  // Null si la API devolvio una fecha o una hora imposibles de leer.
+  DateTime? get start => parseStudioDateTime(fecha, hora);
+  DateTime? get end => start?.add(const Duration(minutes: 60));
   String get reservationCode => id.toString().padLeft(6, '0');
 
   factory Appointment.fromJson(Map<String, dynamic> json) {

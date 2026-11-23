@@ -13,10 +13,12 @@ const { createPool } = require('mysql2/promise');
 
 const {
   dateInTimeZone,
+  dateText,
   formatLocalDateTime,
   localDateTimeToDate,
   localDayRange,
   parseDate,
+  timeText,
   weekday,
 } = require('./services/dateTime');
 const googleCalendar = require('./services/googleCalendar');
@@ -31,6 +33,9 @@ const pool = createPool({
   database: process.env.DB_NAME || 'anne_nail_studio',
   connectionLimit: 10,
   timezone: 'Z',
+  // Las DATE llegan como "YYYY-MM-DD" sin conversion de zona horaria: una cita
+  // del 24 a las 10:00 no debe cambiar de dia.
+  dateStrings: ['DATE'],
   multipleStatements: true,
 });
 
@@ -326,8 +331,8 @@ app.post('/api/appointments', requireUser, asyncHandler(async (request, response
       id: result.insertId,
       servicio_id: service.id,
       servicio: service.nombre,
-      fecha: date,
-      hora: time,
+      fecha: dateText(date),
+      hora: timeText(time),
       estado: 'pendiente',
       eventUrl: event.eventUrl,
     });
@@ -348,7 +353,15 @@ app.get('/api/appointments/mine', requireUser, asyncHandler(async (request, resp
      WHERE c.usuario_id = ? ORDER BY c.fecha, c.hora`,
     [request.user.userId],
   );
-  response.json(rows);
+  response.json(
+    rows.map((row) => ({
+      id: row.id,
+      servicio: row.servicio,
+      fecha: dateText(row.fecha),
+      hora: timeText(row.hora),
+      estado: row.estado,
+    })),
+  );
 }));
 
 app.use('/api/admin', require('./admin/routes')(pool));

@@ -121,8 +121,23 @@ function weekday(date) {
   return day === 0 ? 7 : day;
 }
 
+// mysql2 devuelve las columnas DATE como Date o como texto segun la conexion.
+// La API responde siempre "YYYY-MM-DD" y "HH:MM" para que la app no tenga que
+// interpretar zonas horarias.
+function dateText(value) {
+  if (typeof value === 'string') return value.slice(0, 10);
+  if (value instanceof Date) return value.toISOString().slice(0, 10);
+  return '';
+}
+
+function timeText(value) {
+  return typeof value === 'string' ? value.slice(0, 5) : '';
+}
+
 module.exports = {
   dateInTimeZone,
+  dateText,
+  timeText,
   formatLocalDateTime,
   localDateTimeToDate,
   localDayRange,
