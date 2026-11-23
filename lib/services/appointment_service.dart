@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../config/app_config.dart';
@@ -132,9 +133,10 @@ class AppointmentService {
             : 'No se pudo completar la operación (${response.statusCode}).',
         statusCode: response.statusCode,
       );
-    } on http.ClientException {
-      throw const AppointmentServiceException(
-        'No pudimos conectar con el servidor.',
+    } on http.ClientException catch (error) {
+      debugPrint('Sin conexion con ${AppConfig.apiBaseUrl}: ${error.message}');
+      throw AppointmentServiceException(
+        'No pudimos conectar con el servidor (${AppConfig.apiBaseUrl}).',
       );
     } on TimeoutException {
       throw const AppointmentServiceException(
