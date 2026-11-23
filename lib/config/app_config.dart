@@ -15,8 +15,18 @@ class AppConfig {
   }
 
   // Android resuelve el client nativo mediante el package name y SHA-1.
+  static const googleClientId = '';
   static const googleServerClientId =
       '508896308195-h7r0cm8302k69n9hosmtu95qn93dn5mi.apps.googleusercontent.com';
+
+  // TODO: Sustituir por el ID real del calendario del estudio.
+  static const calendarId = 'YOUR_STUDIO_CALENDAR_ID';
+
+  // TODO: Configurar un identificador IANA válido para la zona del estudio.
+  static const timeZone = 'YOUR_IANA_TIME_ZONE';
+
+  // TODO: Reemplazar por el correo que recibirá las invitaciones del estudio.
+  static const studioEmail = 'YOUR_STUDIO_EMAIL';
 
   static const studioName = 'Anne Nail Studio';
   static const currencyCode = 'USD';
