@@ -1,0 +1,9 @@
+.env
+.env.*
+*.key
+*service-account*.json
+*credentials*.json
+.credentials/
+node_modules
+npm-debug.log
+.git

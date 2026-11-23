@@ -1,0 +1,340 @@
+import 'package:flutter/material.dart';
+
+import '../services/app_session.dart';
+import '../services/auth_service.dart';
+import '../theme/app_theme.dart';
+import '../widgets/app_button.dart';
+import 'home_screen.dart';
+
+class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
+
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _email = TextEditingController();
+  final _password = TextEditingController();
+  bool _hidePassword = true;
+  bool _submitting = false;
+
+  @override
+  void dispose() {
+    _email.dispose();
+    _password.dispose();
+    super.dispose();
+  }
+
+  bool get _formIsValid => _formKey.currentState?.validate() ?? false;
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  void _goHome() {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute<void>(builder: (_) => const HomeScreen()),
+    );
+  }
+
+  Future<void> _login() async {
+    if (_submitting || !_formIsValid) return;
+    setState(() => _submitting = true);
+    try {
+      final token = await AuthService.instance.login(
+        correo: _email.text,
+        contrasena: _password.text,
+      );
+      AppSession.instance.setAuthenticatedUser(
+        emailAddress: _email.text,
+        token: token,
+      );
+      if (mounted) _goHome();
+    } on AuthException catch (error) {
+      if (mounted) _showMessage(error.message);
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  Future<void> _register() async {
+    if (_submitting || !_formIsValid) return;
+    setState(() => _submitting = true);
+    try {
+      await AuthService.instance.register(
+        correo: _email.text,
+        contrasena: _password.text,
+      );
+      if (mounted) {
+        _showMessage('Cuenta creada. Ahora puedes iniciar sesión.');
+      }
+    } on AuthException catch (error) {
+      if (mounted) _showMessage(error.message);
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  void _enterAsGuest() {
+    AppSession.instance.setGuest();
+    _goHome();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 440),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [AppTheme.heroPink, AppTheme.softPink],
+                      ),
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    child: Column(
+                      children: [
+                        Container(
+                          width: 76,
+                          height: 76,
+                          padding: const EdgeInsets.all(16),
+                          decoration: const BoxDecoration(
+                            color: AppTheme.surface,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Image.asset('assets/images/logo.png'),
+                        ),
+                        const SizedBox(height: 14),
+                        Text('STUDIO DE MANICURA', style: AppTheme.labelStyle),
+                        const SizedBox(height: 5),
+                        Text(
+                          'Anne Nails',
+                          style: AppTheme.titleStyle.copyWith(fontSize: 34),
+                        ),
+                        const SizedBox(height: 5),
+                        const Text(
+                          'Cuidado sofisticado, indulgencia y diseño de autor para tus manos.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: AppTheme.muted, height: 1.5),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+                  Text('BIENVENIDA', style: AppTheme.labelStyle),
+                  const SizedBox(height: 5),
+                  Text(
+                    'Iniciar sesión',
+                    style: AppTheme.titleStyle.copyWith(fontSize: 32),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Accede a tu agenda exclusiva y citas personalizadas.',
+                    style: TextStyle(color: AppTheme.muted),
+                  ),
+                  const SizedBox(height: 20),
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: AppTheme.surface,
+                      borderRadius: BorderRadius.circular(28),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppTheme.text.withValues(alpha: 0.045),
+                          blurRadius: 22,
+                          offset: const Offset(0, 7),
+                        ),
+                      ],
+                    ),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const Text(
+                            'Correo',
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          const SizedBox(height: 7),
+                          TextFormField(
+                            controller: _email,
+                            keyboardType: TextInputType.emailAddress,
+                            textInputAction: TextInputAction.next,
+                            autofillHints: const [AutofillHints.email],
+                            decoration: const InputDecoration(
+                              hintText: 'Ingresar correo',
+                              prefixIcon: Icon(Icons.mail_outline),
+                            ),
+                            validator: (value) {
+                              final email = value?.trim() ?? '';
+                              if (email.isEmpty || !email.contains('@')) {
+                                return 'Ingresa un correo válido';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 15),
+                          const Text(
+                            'Contraseña',
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          const SizedBox(height: 7),
+                          TextFormField(
+                            controller: _password,
+                            obscureText: _hidePassword,
+                            textInputAction: TextInputAction.done,
+                            autofillHints: const [AutofillHints.password],
+                            onFieldSubmitted: (_) => _login(),
+                            decoration: InputDecoration(
+                              hintText: 'Contraseña',
+                              prefixIcon: const Icon(Icons.lock_outline),
+                              suffixIcon: IconButton(
+                                tooltip: _hidePassword
+                                    ? 'Mostrar contraseña'
+                                    : 'Ocultar contraseña',
+                                onPressed: () => setState(() {
+                                  _hidePassword = !_hidePassword;
+                                }),
+                                icon: Icon(
+                                  _hidePassword
+                                      ? Icons.visibility_outlined
+                                      : Icons.visibility_off_outlined,
+                                ),
+                              ),
+                            ),
+                            validator: (value) =>
+                                (value?.trim().isEmpty ?? true)
+                                ? 'Ingresa tu contraseña'
+                                : null,
+                          ),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton(
+                              onPressed: _submitting
+                                  ? null
+                                  : () => _showMessage(
+                                      'Contacta con el estudio para recuperar tu acceso.',
+                                    ),
+                              style: TextButton.styleFrom(
+                                minimumSize: const Size(48, 48),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                ),
+                              ),
+                              child: const Text('¿Olvidaste tu contraseña?'),
+                            ),
+                          ),
+                          AppButton(
+                            label: 'Entrar',
+                            loading: _submitting,
+                            onPressed: _login,
+                          ),
+                          const SizedBox(height: 4),
+                          AppButton(
+                            label: 'Crear cuenta',
+                            style: AppButtonStyle.ghost,
+                            onPressed: _submitting ? null : _register,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Row(
+                    children: [
+                      Expanded(
+                        child: _PromoTile(
+                          title: 'Nail Art Couture',
+                          imageUrl:
+                              'https://images.unsplash.com/photo-1604654894610-df63bc536371?auto=format&fit=crop&w=700&q=80',
+                        ),
+                      ),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: _PromoTile(
+                          title: 'Atención Privada',
+                          imageUrl:
+                              'https://images.unsplash.com/photo-1600948836101-f9ffda59d250?auto=format&fit=crop&w=700&q=80',
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  AppButton(
+                    label: 'Continuar como invitada',
+                    style: AppButtonStyle.secondary,
+                    onPressed: _submitting ? null : _enterAsGuest,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PromoTile extends StatelessWidget {
+  const _PromoTile({required this.title, required this.imageUrl});
+
+  final String title;
+  final String imageUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 96,
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(20)),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Image.network(
+            imageUrl,
+            fit: BoxFit.cover,
+            errorBuilder: (_, _, _) => const ColoredBox(
+              color: AppTheme.softPink,
+              child: Icon(Icons.spa_outlined, color: AppTheme.accent),
+            ),
+          ),
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Colors.transparent, AppTheme.button],
+              ),
+            ),
+          ),
+          Align(
+            alignment: Alignment.bottomLeft,
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Text(
+                title,
+                style: const TextStyle(
+                  color: AppTheme.surface,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

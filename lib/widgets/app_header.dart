@@ -1,0 +1,71 @@
+import 'package:flutter/material.dart';
+
+import '../theme/app_theme.dart';
+
+class AppHeader extends StatelessWidget {
+  const AppHeader({super.key, this.onProfileTap, this.onBack});
+
+  final VoidCallback? onProfileTap;
+  final VoidCallback? onBack;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 10, 20, 12),
+      child: Row(
+        children: [
+          if (onBack != null) ...[
+            IconButton(
+              onPressed: onBack,
+              icon: const Icon(Icons.arrow_back_rounded),
+              tooltip: 'Volver',
+              style: IconButton.styleFrom(
+                backgroundColor: AppTheme.surface,
+                minimumSize: const Size(44, 44),
+              ),
+            ),
+            const SizedBox(width: 6),
+          ],
+          Container(
+            width: 44,
+            height: 44,
+            padding: const EdgeInsets.all(7),
+            decoration: BoxDecoration(
+              color: AppTheme.surface,
+              shape: BoxShape.circle,
+              border: Border.all(color: AppTheme.softPink, width: 1.5),
+            ),
+            child: Image.asset('assets/images/logo.png', fit: BoxFit.contain),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Anne Nails',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppTheme.titleStyle.copyWith(fontSize: 19),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Material(
+            color: AppTheme.button,
+            shape: const CircleBorder(),
+            child: InkWell(
+              onTap: onProfileTap,
+              customBorder: const CircleBorder(),
+              child: const SizedBox(
+                width: 44,
+                height: 44,
+                child: Icon(
+                  Icons.person_outline,
+                  color: AppTheme.surface,
+                  size: 20,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
