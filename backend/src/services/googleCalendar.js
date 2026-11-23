@@ -1,4 +1,5 @@
 const fs = require('node:fs');
+const path = require('node:path');
 const { google } = require('googleapis');
 
 const { localDayRange } = require('./dateTime');
@@ -8,6 +9,14 @@ const scopes = [
   'https://www.googleapis.com/auth/calendar.freebusy',
 ];
 let calendarApi;
+
+function resolveLocalCredentialPath(file) {
+  if (path.isAbsolute(file)) return file;
+  if (file.startsWith('./backend/') || file.startsWith('backend/')) {
+    return path.resolve(__dirname, '../../..', file);
+  }
+  return path.resolve(process.cwd(), file);
+}
 
 function configuredCalendarId() {
   const calendarId = process.env.GOOGLE_CALENDAR_ID?.trim();
@@ -30,10 +39,11 @@ function getCalendarApi() {
     }
     auth = new google.auth.GoogleAuth({ credentials, scopes });
   } else if (file) {
-    if (!fs.existsSync(file)) {
+    const credentialPath = resolveLocalCredentialPath(file);
+    if (!fs.existsSync(credentialPath)) {
       throw new Error('No se encontró el archivo GOOGLE_APPLICATION_CREDENTIALS.');
     }
-    auth = new google.auth.GoogleAuth({ keyFile: file, scopes });
+    auth = new google.auth.GoogleAuth({ keyFile: credentialPath, scopes });
   } else {
     throw new Error(
       'Configura GOOGLE_SERVICE_ACCOUNT_JSON o GOOGLE_APPLICATION_CREDENTIALS.',

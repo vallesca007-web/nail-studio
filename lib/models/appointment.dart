@@ -7,49 +7,42 @@ import '../config/app_config.dart';
 
 class Appointment {
   const Appointment({
-    required this.eventId,
+    required this.id,
     required this.serviceName,
-    required this.start,
-    required this.end,
-    required this.customerName,
-    required this.customerEmail,
-    this.serviceId = '',
-    this.reservationCode = '',
+    required this.fecha,
+    required this.hora,
+    required this.estado,
     this.eventUrl,
   });
 
-  final String eventId;
-  final String serviceId;
-  final String reservationCode;
-  final String? eventUrl;
+  final int id;
   final String serviceName;
-  final DateTime start;
-  final DateTime end;
-  final String customerName;
-  final String customerEmail;
+  final String fecha;
+  final String hora;
+  final String estado;
+  final String? eventUrl;
+
+  DateTime get start => DateTime.parse('$fecha' 'T$hora' ':00');
+  DateTime get end => start.add(const Duration(minutes: 60));
+  String get reservationCode => id.toString().padLeft(6, '0');
+  String get eventId => id.toString();
 
   Map<String, Object?> toJson() => {
-    'eventId': eventId,
-    'serviceId': serviceId,
-    'reservationCode': reservationCode,
+    'id': id,
+    'servicio': serviceName,
+    'fecha': fecha,
+    'hora': hora,
+    'estado': estado,
     'eventUrl': eventUrl,
-    'serviceName': serviceName,
-    'start': start.toUtc().toIso8601String(),
-    'end': end.toUtc().toIso8601String(),
-    'customerName': customerName,
-    'customerEmail': customerEmail,
   };
 
   factory Appointment.fromJson(Map<String, dynamic> json) => Appointment(
-    eventId: json['eventId'] as String,
-    serviceId: json['serviceId'] as String? ?? '',
-    reservationCode: json['reservationCode'] as String? ?? '',
+    id: json['id'] as int,
+    serviceName: json['servicio'] as String? ?? json['serviceName'] as String? ?? '',
+    fecha: json['fecha'] as String? ?? '',
+    hora: json['hora'] as String? ?? '',
+    estado: json['estado'] as String? ?? 'pendiente',
     eventUrl: json['eventUrl'] as String?,
-    serviceName: json['serviceName'] as String,
-    start: DateTime.parse(json['start'] as String).toLocal(),
-    end: DateTime.parse(json['end'] as String).toLocal(),
-    customerName: json['customerName'] as String,
-    customerEmail: json['customerEmail'] as String,
   );
 }
 
@@ -60,11 +53,11 @@ class AppointmentStore {
   final http.Client _client = http.Client();
 
   Uri get _appointmentsUri => Uri.parse(
-    '${AppConfig.apiBaseUrl.replaceFirst(RegExp(r'/$'), '')}/appointments',
+    '${AppConfig.apiBaseUrl.replaceFirst(RegExp(r'/$'), '')}/appointments/mine',
   );
 
-  Future<List<Appointment>> load({required String customerEmail}) async {
-    if (customerEmail.trim().isEmpty) {
+  Future<List<Appointment>> load({required String token}) async {
+    if (token.trim().isEmpty) {
       throw const AppointmentStoreException(
         'Inicia sesión para consultar tus citas.',
       );
@@ -72,9 +65,8 @@ class AppointmentStore {
     try {
       final response = await _client
           .get(
-            _appointmentsUri.replace(
-              queryParameters: {'email': customerEmail.trim()},
-            ),
+            _appointmentsUri,
+            headers: {'authorization': 'Bearer $token'},
           )
           .timeout(const Duration(seconds: 10));
       _checkResponse(response);

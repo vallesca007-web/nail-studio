@@ -7,12 +7,25 @@ class AppSession {
   String email = '';
   String? photoUrl;
   bool isGoogleUser = false;
+  String authToken = '';
+
+  void setAuthenticatedUser({
+    required String emailAddress,
+    required String token,
+  }) {
+    email = emailAddress.trim();
+    displayName = email.split('@').first;
+    photoUrl = null;
+    isGoogleUser = false;
+    authToken = token;
+  }
 
   void setEmailUser(String emailAddress) {
     email = emailAddress.trim();
     displayName = email.split('@').first;
     photoUrl = null;
     isGoogleUser = false;
+    authToken = '';
   }
 
   void setGuest() {
@@ -20,6 +33,7 @@ class AppSession {
     email = '';
     photoUrl = null;
     isGoogleUser = false;
+    authToken = '';
   }
 
   void setGoogleUser({

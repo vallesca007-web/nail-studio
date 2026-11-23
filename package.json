@@ -7,7 +7,10 @@
     "lib": "lib"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "npm --prefix backend test",
+    "db:setup": "npm --prefix backend run db:setup",
+    "db:schema": "npm --prefix backend run db:schema",
+    "db:seed": "npm --prefix backend run db:seed"
   },
   "repository": {
     "type": "git",

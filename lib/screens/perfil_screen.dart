@@ -38,7 +38,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
     });
     try {
       final appointments = await AppointmentStore.instance.load(
-        customerEmail: AppSession.instance.email,
+        token: AppSession.instance.authToken,
       );
       if (!mounted) return;
       setState(() {

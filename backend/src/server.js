@@ -1,12 +1,13 @@
-require('dotenv').config();
+const path = require('node:path');
+require('dotenv').config({ path: path.resolve(__dirname, '../../.env') });
 
 const crypto = require('node:crypto');
-const path = require('node:path');
-
 const express = require('express');
 const cookieParser = require('cookie-parser');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 const { google } = require('googleapis');
 const { createPool } = require('mysql2/promise');
 
@@ -19,14 +20,13 @@ const {
   weekday,
 } = require('./services/dateTime');
 const googleCalendar = require('./services/googleCalendar');
-const createAdminRoutes = require('./admin/routes');
 
 const port = Number(process.env.PORT || 3000);
 const timeZone = process.env.TIMEZONE || 'America/Mexico_City';
 const pool = createPool({
   host: process.env.DB_HOST || '127.0.0.1',
   port: Number(process.env.DB_PORT || 3306),
-  user: process.env.DB_USER || 'root',
+  user: process.env.DB_USER || 'anne_nail_app',
   password: process.env.DB_PASSWORD || '',
   database: process.env.DB_NAME || 'anne_nail_studio',
   connectionLimit: 10,
@@ -40,6 +40,9 @@ class ApiError extends Error {
     this.status = status;
   }
 }
+
+const asyncHandler = (handler) => (request, response, next) =>
+  Promise.resolve(handler(request, response, next)).catch(next);
 
 function getBusinessDays() {
   const value = process.env.BUSINESS_DAYS || '1,2,3,4,5,6';
@@ -68,120 +71,9 @@ function getBusinessHours() {
     interval <= 0 ||
     interval > 240
   ) {
-    throw new ApiError(500, 'La configuración del horario del estudio no es válida.');
+    throw new ApiError(500, 'La configuración del horario no es válida.');
   }
   return { opening, closingMinute: closing * 60 + closingMinute, interval };
-}
-
-async function getService(serviceId) {
-  if (typeof serviceId !== 'string' || !serviceId.trim()) {
-    throw new ApiError(400, 'Selecciona un servicio válido.');
-  }
-  const [rows] = await pool.execute(
-    `SELECT service_id, name, description, duration_minutes, price
-     FROM services
-     WHERE service_id = ? AND active = TRUE`,
-    [serviceId.trim()],
-  );
-  if (rows.length === 0) throw new ApiError(404, 'El servicio no está disponible.');
-  return rows[0];
-}
-
-function buildSlots(date, duration, busyRanges) {
-  const businessDays = getBusinessDays();
-  const dayOfWeek = weekday(date);
-  if (!dayOfWeek || dayOfWeek === 7 || !businessDays.has(dayOfWeek)) return [];
-
-  const { opening, closingMinute, interval } = getBusinessHours();
-  const range = localDayRange(date, timeZone);
-  if (!range) throw new ApiError(400, 'La fecha o la zona horaria no son válidas.');
-
-  const appointments = busyRanges.map((busy) => ({
-    start: new Date(busy.start),
-    end: new Date(busy.end),
-  }));
-  const isToday = dateInTimeZone(new Date(), timeZone) === date;
-  const now = Date.now();
-  const slots = [];
-
-  for (let minute = opening * 60; minute < closingMinute; minute += interval) {
-    const time = `${String(Math.floor(minute / 60)).padStart(2, '0')}:${String(
-      minute % 60,
-    ).padStart(2, '0')}`;
-    const start = localDateTimeToDate(date, time, timeZone);
-    if (!start || (isToday && start.getTime() <= now)) continue;
-    const end = new Date(start.getTime() + duration * 60_000);
-    const localEnd = formatLocalDateTime(end, timeZone);
-    const endMinute =
-      Number(localEnd.slice(11, 13)) * 60 +
-      Number(localEnd.slice(14, 16));
-    if (localEnd.slice(0, 10) !== date || endMinute > closingMinute) continue;
-    if (appointments.some((busy) => start < busy.end && end > busy.start)) continue;
-    slots.push(time);
-  }
-  return slots;
-}
-
-async function getAvailableSlots(date, service) {
-  const range = localDayRange(date, timeZone);
-  if (!range) throw new ApiError(400, 'La fecha o la zona horaria no son válidas.');
-  let busyRanges;
-  let rows;
-  try {
-    [busyRanges, rows] = await Promise.all([
-      googleCalendar.getBusyRanges(date),
-      pool.execute(
-        `SELECT start_at, end_at
-         FROM appointments
-         WHERE start_at < ? AND end_at > ?`,
-        [range.end, range.start],
-      ),
-    ]);
-  } catch (error) {
-    console.error('No se pudo consultar la disponibilidad:', error);
-    throw new ApiError(502, 'No pudimos consultar la agenda. Inténtalo nuevamente.');
-  }
-  const [appointments] = rows;
-  const databaseBusy = appointments.map((appointment) => ({
-    start: new Date(appointment.start_at).toISOString(),
-    end: new Date(appointment.end_at).toISOString(),
-  }));
-  return buildSlots(date, service.duration_minutes, [...busyRanges, ...databaseBusy]);
-}
-
-function validateDateAndTime(date, time) {
-  if (!parseDate(date)) throw new ApiError(400, 'Usa una fecha válida con formato AAAA-MM-DD.');
-  if (date < dateInTimeZone(new Date(), timeZone)) {
-    throw new ApiError(400, 'No puedes reservar una fecha pasada.');
-  }
-  if (typeof time !== 'string' || !/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) {
-    throw new ApiError(400, 'Usa una hora válida con formato HH:mm.');
-  }
-}
-
-async function verifyCustomer(request) {
-  const audience = (process.env.GOOGLE_OAUTH_CLIENT_ID || '')
-    .split(',')
-    .map((item) => item.trim())
-    .filter(Boolean);
-  if (audience.length === 0) {
-    throw new ApiError(503, 'El inicio de sesión no está configurado en el servidor.');
-  }
-  const token = /^Bearer\s+(.+)$/i.exec(request.headers.authorization || '')?.[1];
-  if (!token) throw new ApiError(401, 'Inicia sesión con Google para reservar una cita.');
-  try {
-    const ticket = await new google.auth.OAuth2().verifyIdToken({
-      idToken: token,
-      audience,
-    });
-    const payload = ticket.getPayload();
-    if (!payload?.email || payload.email_verified !== true) {
-      throw new Error('El correo de Google no está verificado.');
-    }
-    return payload;
-  } catch {
-    throw new ApiError(401, 'Tu sesión de Google venció. Inicia sesión nuevamente.');
-  }
 }
 
 function validatePhone(value) {
@@ -189,159 +81,76 @@ function validatePhone(value) {
   if (typeof value !== 'string') throw new ApiError(400, 'El teléfono no es válido.');
   const phone = value.trim();
   if (phone.length > 32) throw new ApiError(400, 'El teléfono no puede superar 32 caracteres.');
-  if (!/^[+\d][\d\s().-]*$/.test(phone)) {
-    throw new ApiError(400, 'El teléfono no es válido.');
-  }
+  if (!/^[+\d][\d\s().-]*$/.test(phone)) throw new ApiError(400, 'El teléfono no es válido.');
   return phone;
 }
 
-async function createAppointment(request, body) {
-  const { serviceId, date, time } = body;
-  validateDateAndTime(date, time);
-  const service = await getService(serviceId);
-  const customer = await verifyCustomer(request);
-  const customerName =
-    typeof body.customerName === 'string' && body.customerName.trim()
-      ? body.customerName.trim()
-      : typeof customer.name === 'string'
-      ? customer.name.trim()
-      : '';
-  if (!customerName || customerName.length > 160) {
-    throw new ApiError(400, 'No pudimos obtener el nombre de tu cuenta de Google.');
+function buildSlots(date, duration, busyRanges) {
+  const businessDays = getBusinessDays();
+  const dayOfWeek = weekday(date);
+  if (!dayOfWeek || dayOfWeek === 7 || !businessDays.has(dayOfWeek)) return [];
+  const { opening, closingMinute, interval } = getBusinessHours();
+  const isToday = dateInTimeZone(new Date(), timeZone) === date;
+  const now = Date.now();
+  const slots = [];
+  for (let minute = opening * 60; minute < closingMinute; minute += interval) {
+    const time = `${String(Math.floor(minute / 60)).padStart(2, '0')}:${String(minute % 60).padStart(2, '0')}`;
+    const start = localDateTimeToDate(date, time, timeZone);
+    if (!start || (isToday && start.getTime() <= now)) continue;
+    const end = new Date(start.getTime() + duration * 60_000);
+    const localEnd = formatLocalDateTime(end, timeZone);
+    const endMinute = Number(localEnd.slice(11, 13)) * 60 + Number(localEnd.slice(14, 16));
+    if (localEnd.slice(0, 10) !== date || endMinute > closingMinute) continue;
+    if (busyRanges.some((busy) => start < busy.end && end > busy.start)) continue;
+    slots.push(time);
   }
-  const customerPhone = validatePhone(body.customerPhone);
+  return slots;
+}
 
-  const start = localDateTimeToDate(date, time, timeZone);
-  if (!start) throw new ApiError(400, 'La hora elegida no existe en la zona horaria del estudio.');
-  const end = new Date(start.getTime() + service.duration_minutes * 60_000);
-  const allowedSlots = buildSlots(date, service.duration_minutes, []);
-  if (!allowedSlots.includes(time)) {
-    throw new ApiError(400, 'Ese horario no está dentro del horario de atención.');
-  }
+async function getService(serviceId) {
+  const [rows] = await pool.execute(
+    'SELECT id, nombre, costo, duracion_min FROM servicios WHERE id = ? AND activo = TRUE',
+    [serviceId],
+  );
+  if (!rows.length) throw new ApiError(404, 'El servicio no existe.');
+  return rows[0];
+}
 
-  const connection = await pool.getConnection();
-  const lockName = `anne-booking-${date}`;
-  let hasLock = false;
-  let inTransaction = false;
-  let eventId;
-  let eventUrl;
-
+async function getAvailableSlots(date, service) {
+  const range = localDayRange(date, timeZone);
+  if (!range) throw new ApiError(400, 'La fecha no es válida.');
+  let busyRanges;
   try {
-    const [lockRows] = await connection.execute(
-      'SELECT GET_LOCK(?, 10) AS acquired',
-      [lockName],
-    );
-    if (lockRows[0]?.acquired !== 1) {
-      throw new ApiError(503, 'No pudimos reservar el horario ahora. Inténtalo de nuevo.');
-    }
-    hasLock = true;
-    await connection.beginTransaction();
-    inTransaction = true;
-
-    const [appointments] = await connection.execute(
-      `SELECT start_at, end_at
-       FROM appointments
-       WHERE start_at < ? AND end_at > ?
-       FOR UPDATE`,
-      [end, start],
-    );
-    let busyRanges;
-    try {
-      busyRanges = await googleCalendar.getBusyRanges(date);
-    } catch (error) {
-      console.error('No se pudo revalidar la agenda antes de reservar:', error);
-      throw new ApiError(502, 'No pudimos confirmar la disponibilidad. Inténtalo nuevamente.');
-    }
-    const databaseBusy = appointments.map((appointment) => ({
-      start: new Date(appointment.start_at).toISOString(),
-      end: new Date(appointment.end_at).toISOString(),
-    }));
-    if (buildSlots(date, service.duration_minutes, [...busyRanges, ...databaseBusy]).indexOf(time) < 0) {
-      throw new ApiError(409, 'Ese horario acaba de ocuparse. Elige otro disponible.');
-    }
-
-    let event;
-    try {
-      event = await googleCalendar.createEvent({
-        serviceName: service.name,
-        customerName,
-        customerEmail: customer.email,
-        customerPhone,
-        start,
-        end,
-      });
-    } catch (error) {
-      console.error('Google Calendar no pudo crear la cita:', error);
-      throw new ApiError(502, 'No pudimos crear la cita en el calendario.');
-    }
-    eventId = event.eventId;
-    eventUrl = event.eventUrl;
-
-    const [specialists] = await connection.execute(
-      'SELECT specialist_id FROM specialists WHERE active = TRUE ORDER BY created_at, name LIMIT 1',
-    );
-    const specialistId = specialists[0]?.specialist_id || null;
-    const reservationCode = crypto.randomBytes(4).toString('hex').toUpperCase();
-    await connection.execute(
-      `INSERT INTO appointments
-        (event_id, service_id, specialist_id, reservation_code, service_name, start_at, end_at,
-         customer_name, customer_email, customer_phone, price, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pendiente')`,
-      [
-        eventId,
-        service.service_id,
-        specialistId,
-        reservationCode,
-        service.name,
-        start,
-        end,
-        customerName,
-        customer.email,
-        customerPhone,
-        service.price,
-      ],
-    );
-    await connection.commit();
-    inTransaction = false;
-
-    return {
-      eventId,
-      eventUrl,
-      reservationCode,
-      serviceId: service.service_id,
-      serviceName: service.name,
-      start: formatLocalDateTime(start, timeZone),
-      end: formatLocalDateTime(end, timeZone),
-      customerName,
-      customerEmail: customer.email,
-      status: 'pendiente',
-    };
+    [busyRanges] = await Promise.all([googleCalendar.getBusyRanges(date)]);
   } catch (error) {
-    if (inTransaction) {
-      try {
-        await connection.rollback();
-      } catch (rollbackError) {
-        console.error('Falló la reversión de la transacción MySQL:', rollbackError);
-      }
-    }
-    if (eventId) {
-      try {
-        await googleCalendar.deleteEvent(eventId);
-      } catch (rollbackError) {
-        console.error(`No se pudo eliminar el evento huérfano ${eventId}:`, rollbackError);
-        throw new ApiError(502, 'No se pudo guardar la cita y requiere revisión del estudio.');
-      }
-    }
-    throw error;
-  } finally {
-    if (hasLock) {
-      try {
-        await connection.execute('SELECT RELEASE_LOCK(?)', [lockName]);
-      } catch (error) {
-        console.error('No se pudo liberar el bloqueo de reserva:', error);
-      }
-    }
-    connection.release();
+    console.error('No se pudo consultar Google Calendar:', error);
+    throw new ApiError(502, 'No pudimos consultar la agenda.');
+  }
+  const [rows] = await pool.execute(
+    `SELECT hora, hora_fin
+     FROM citas
+     WHERE fecha = ? AND estado <> 'cancelada'`,
+    [date],
+  );
+  const databaseBusy = rows.map((row) => ({
+    start: localDateTimeToDate(date, String(row.hora).slice(0, 5), timeZone),
+    end: localDateTimeToDate(date, String(row.hora_fin).slice(0, 5), timeZone),
+  })).filter((row) => row.start && row.end);
+  const busy = [
+    ...busyRanges.map((item) => ({ start: new Date(item.start), end: new Date(item.end) })),
+    ...databaseBusy,
+  ];
+  return buildSlots(date, service.duracion_min, busy);
+}
+
+function requireUser(request, response, next) {
+  const token = /^Bearer\s+(.+)$/i.exec(request.headers.authorization || '')?.[1];
+  if (!token) return response.status(401).json({ error: 'Inicia sesión para continuar.' });
+  try {
+    request.user = jwt.verify(token, process.env.JWT_SECRET);
+    return next();
+  } catch {
+    return response.status(401).json({ error: 'Tu sesión venció.' });
   }
 }
 
@@ -369,111 +178,174 @@ const loginLimiter = rateLimit({
   message: { error: 'Demasiados intentos. Espera antes de volver a iniciar sesión.' },
 });
 
-app.get('/api/health', async (request, response, next) => {
-  try {
-    await pool.query('SELECT 1 FROM appointments LIMIT 0');
-    response.json({ status: 'ok', database: 'connected' });
-  } catch (error) {
-    next(error);
-  }
-});
+app.get('/api/health', asyncHandler(async (request, response) => {
+  await pool.query('SELECT 1 FROM citas LIMIT 0');
+  response.json({ status: 'ok', database: 'connected' });
+}));
 
-app.get('/api/availability', async (request, response, next) => {
+app.post('/api/auth/register', asyncHandler(async (request, response) => {
+  const correo = typeof request.body?.correo === 'string' ? request.body.correo.trim().toLowerCase() : '';
+  const contrasena = typeof request.body?.contrasena === 'string' ? request.body.contrasena : '';
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) throw new ApiError(400, 'El correo no es válido.');
+  if (contrasena.length < 8) throw new ApiError(400, 'La contraseña debe tener al menos 8 caracteres.');
+  const [existing] = await pool.execute('SELECT id FROM usuarios WHERE correo = ?', [correo]);
+  if (existing.length) throw new ApiError(409, 'El correo ya está registrado.');
+  const hash = await bcrypt.hash(contrasena, 12);
+  const [result] = await pool.execute(
+    'INSERT INTO usuarios (correo, contrasena_hash) VALUES (?, ?)',
+    [correo, hash],
+  );
+  response.status(201).json({ id: result.insertId, correo });
+}));
+
+app.post('/api/auth/login', loginLimiter, asyncHandler(async (request, response) => {
+  const correo = typeof request.body?.correo === 'string' ? request.body.correo.trim().toLowerCase() : '';
+  const contrasena = typeof request.body?.contrasena === 'string' ? request.body.contrasena : '';
+  if (!correo || !contrasena) throw new ApiError(400, 'Indica correo y contraseña.');
+  const [rows] = await pool.execute('SELECT id, correo, contrasena_hash FROM usuarios WHERE correo = ?', [correo]);
+  if (!rows.length || !(await bcrypt.compare(contrasena, rows[0].contrasena_hash))) {
+    throw new ApiError(401, 'Credenciales incorrectas.');
+  }
+  const token = jwt.sign({ userId: rows[0].id, correo: rows[0].correo }, process.env.JWT_SECRET, { expiresIn: '8h' });
+  response.json({ token, correo: rows[0].correo, id: rows[0].id });
+}));
+
+app.get('/api/availability', asyncHandler(async (request, response) => {
+  const date = request.query.date;
+  const serviceId = Number(request.query.serviceId);
+  if (!parseDate(date)) throw new ApiError(400, 'Indica una fecha válida.');
+  if (!Number.isInteger(serviceId) || serviceId <= 0) throw new ApiError(400, 'Indica el servicio.');
+  if (date < dateInTimeZone(new Date(), timeZone)) throw new ApiError(400, 'No puedes consultar fechas pasadas.');
+  const service = await getService(serviceId);
+  const slots = await getAvailableSlots(date, service);
+  response.json({
+    date,
+    serviceId: service.id,
+    costo: Number(service.costo),
+    duracion_min: service.duracion_min,
+    morning: slots.filter((time) => Number(time.slice(0, 2)) < 12),
+    afternoon: slots.filter((time) => Number(time.slice(0, 2)) >= 12),
+  });
+}));
+
+app.post('/api/appointments', requireUser, asyncHandler(async (request, response) => {
+  const serviceId = Number(request.body?.servicio_id);
+  const date = request.body?.fecha;
+  const time = request.body?.hora;
+  const phone = validatePhone(request.body?.telefono);
+  if (!Number.isInteger(serviceId) || serviceId <= 0) throw new ApiError(400, 'Indica el servicio.');
+  if (!parseDate(date)) throw new ApiError(400, 'Indica una fecha válida.');
+  if (typeof time !== 'string' || !/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) {
+    throw new ApiError(400, 'Indica una hora válida.');
+  }
+  if (date < dateInTimeZone(new Date(), timeZone)) throw new ApiError(400, 'No puedes reservar fechas pasadas.');
+  const service = await getService(serviceId);
+  const start = localDateTimeToDate(date, time, timeZone);
+  if (!start) throw new ApiError(400, 'La hora no existe en la zona horaria.');
+  const end = new Date(start.getTime() + service.duracion_min * 60_000);
+
+  const connection = await pool.getConnection();
+  let hasLock = false;
+  let inTransaction = false;
+  let eventId;
   try {
-    const date = request.query.date;
-    const serviceId = request.query.serviceId;
-    if (!parseDate(date)) throw new ApiError(400, 'Indica una fecha válida con formato AAAA-MM-DD.');
-    if (date < dateInTimeZone(new Date(), timeZone)) {
-      throw new ApiError(400, 'No puedes consultar horarios de una fecha pasada.');
+    const [lock] = await connection.execute('SELECT GET_LOCK(?,10) AS acquired', [`anne-booking-${date}`]);
+    if (lock[0]?.acquired !== 1) throw new ApiError(503, 'No pudimos reservar ahora.');
+    hasLock = true;
+    await connection.beginTransaction();
+    inTransaction = true;
+
+    const [rows] = await connection.execute(
+      `SELECT hora, hora_fin FROM citas
+       WHERE fecha = ? AND estado <> 'cancelada'
+       AND hora < ? AND hora_fin > ?
+       FOR UPDATE`,
+      [date, formatLocalDateTime(end, timeZone).slice(11, 16), time],
+    );
+    const [googleBusy] = await Promise.all([googleCalendar.getBusyRanges(date)]);
+    if (rows.length || googleBusy.some((busy) => start < new Date(busy.end) && end > new Date(busy.start))) {
+      throw new ApiError(409, 'Ese horario acaba de ocuparse.');
     }
-    if (!serviceId) throw new ApiError(400, 'Indica el servicio que deseas reservar.');
-    const service = await getService(serviceId);
-    const slots = await getAvailableSlots(date, service);
-    response.json({
-      date,
-      serviceId: service.service_id,
-      price: Number(service.price),
-      morning: slots.filter((time) => Number(time.slice(0, 2)) < 12),
-      afternoon: slots.filter((time) => Number(time.slice(0, 2)) >= 12),
+
+    const [manicuristas] = await connection.execute(
+      'SELECT id FROM manicuristas WHERE activo = TRUE ORDER BY id LIMIT 1',
+    );
+    const event = await googleCalendar.createEvent({
+      serviceName: service.nombre,
+      customerName: request.user.correo,
+      customerEmail: null,
+      customerPhone: phone,
+      start,
+      end,
+    });
+    eventId = event.eventId;
+    const [result] = await connection.execute(
+      `INSERT INTO citas
+       (servicio_id, usuario_id, manicurista_id, fecha, hora, hora_fin, precio, telefono, estado, google_event_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pendiente', ?)`,
+      [
+        service.id,
+        request.user.userId,
+        manicuristas[0]?.id || null,
+        date,
+        time,
+        formatLocalDateTime(end, timeZone).slice(11, 16),
+        service.costo,
+        phone,
+        eventId,
+      ],
+    );
+    await connection.commit();
+    inTransaction = false;
+    response.status(201).json({
+      id: result.insertId,
+      servicio_id: service.id,
+      servicio: service.nombre,
+      fecha: date,
+      hora: time,
+      estado: 'pendiente',
     });
   } catch (error) {
-    next(error);
+    if (inTransaction) await connection.rollback().catch(() => {});
+    if (eventId) await googleCalendar.deleteEvent(eventId).catch(() => {});
+    throw error;
+  } finally {
+    if (hasLock) await connection.execute('SELECT RELEASE_LOCK(?)', [`anne-booking-${date}`]).catch(() => {});
+    connection.release();
   }
-});
+}));
 
-app.get('/api/appointments', async (request, response, next) => {
-  try {
-    const email = String(request.query.email || '').trim();
-    if (!email || email.length > 254) {
-      throw new ApiError(400, 'Se requiere un correo válido.');
-    }
-    const [rows] = await pool.execute(
-      `SELECT event_id, service_name, start_at, end_at, status
-       FROM appointments
-       WHERE customer_email = ?
-       ORDER BY start_at`,
-      [email],
-    );
-    response.json(rows.map((row) => ({
-      eventId: row.event_id,
-      serviceName: row.service_name,
-      start: new Date(row.start_at).toISOString(),
-      end: new Date(row.end_at).toISOString(),
-      status: row.status,
-    })));
-  } catch (error) {
-    next(error);
-  }
-});
+app.get('/api/appointments/mine', requireUser, asyncHandler(async (request, response) => {
+  const [rows] = await pool.execute(
+    `SELECT c.id, s.nombre AS servicio, c.fecha, c.hora, c.estado
+     FROM citas c JOIN servicios s ON s.id = c.servicio_id
+     WHERE c.usuario_id = ? ORDER BY c.fecha, c.hora`,
+    [request.user.userId],
+  );
+  response.json(rows);
+}));
 
-app.post('/api/appointments', async (request, response, next) => {
-  try {
-    const appointment = await createAppointment(request, request.body);
-    response.status(201).json(appointment);
-  } catch (error) {
-    next(error);
-  }
-});
-
-app.post('/api/admin/login', loginLimiter);
-app.use('/api/admin', createAdminRoutes(pool));
-
-const publicAdminDir = path.join(__dirname, 'public');
-app.use('/admin', express.static(publicAdminDir));
-app.get('/admin', (request, response) => {
-  response.sendFile(path.join(publicAdminDir, 'index.html'));
-});
+app.use('/api/admin', require('../src/admin/routes')(pool));
+app.use('/admin', express.static(path.join(__dirname, 'public')));
+app.get('/admin', (request, response) => response.sendFile(path.join(__dirname, 'public/index.html')));
 
 app.use((error, request, response, next) => {
-  if (error instanceof ApiError) {
-    return response.status(error.status).json({ error: error.message });
-  }
+  if (error instanceof ApiError) return response.status(error.status).json({ error: error.message });
   console.error(error);
-  return response.status(500).json({ error: 'Error interno del servidor.' });
+  response.status(500).json({ error: 'Error interno del servidor.' });
 });
 
 let server;
 if (require.main === module) {
-  const fs = require('node:fs');
-  fs.promises
-    .readFile(path.join(__dirname, '../migrations/002_admin.sql'), 'utf8')
-    .then((migration) => pool.query(migration))
-    .then(() => {
-      server = app.listen(port, '0.0.0.0', () => {
-        console.log(`Anne Nail Studio API escuchando en el puerto ${port}`);
-      });
-    })
-    .catch((error) => {
-      console.error('No se pudo aplicar la migración 002_admin.sql:', error);
-      process.exitCode = 1;
-    });
+  server = app.listen(port, '0.0.0.0', () => {
+    console.log(`Anne Nail Studio API escuchando en el puerto ${port}`);
+  });
 }
 
 async function shutdown() {
-  if (server) await new Promise((resolve) => server.close(resolve));
+  await new Promise((resolve) => server.close(resolve));
   await pool.end();
 }
-
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
 

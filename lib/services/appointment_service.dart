@@ -43,7 +43,7 @@ class AppointmentService {
 
   Future<AppointmentAvailability> getAvailability({
     required DateTime date,
-    required String serviceId,
+    required int serviceId,
   }) async {
     final dateValue =
         '${date.year.toString().padLeft(4, '0')}-'
@@ -53,7 +53,7 @@ class AppointmentService {
       final response = await _client
           .get(
             _endpoint('availability').replace(
-              queryParameters: {'date': dateValue, 'serviceId': serviceId},
+              queryParameters: {'date': dateValue, 'serviceId': '$serviceId'},
             ),
           )
           .timeout(const Duration(seconds: 12));
@@ -61,7 +61,7 @@ class AppointmentService {
       return AppointmentAvailability(
         morning: _parseTimes(dateValue, body['morning']),
         afternoon: _parseTimes(dateValue, body['afternoon']),
-        price: body['price'] is num ? (body['price'] as num).toDouble() : null,
+        price: body['costo'] is num ? (body['costo'] as num).toDouble() : null,
       );
     } on http.ClientException {
       throw const AppointmentServiceException(
@@ -79,11 +79,10 @@ class AppointmentService {
   }
 
   Future<Appointment> createAppointment({
-    required String serviceId,
+    required int serviceId,
     required DateTime date,
     required DateTime time,
-    required String customerName,
-    required String idToken,
+    required String token,
     String? customerPhone,
   }) async {
     final dateValue =
@@ -99,15 +98,14 @@ class AppointmentService {
             _endpoint('appointments'),
             headers: {
               'content-type': 'application/json',
-              'authorization': 'Bearer $idToken',
+              'authorization': 'Bearer $token',
             },
             body: jsonEncode({
-              'serviceId': serviceId,
-              'date': dateValue,
-              'time': timeValue,
-              'customerName': customerName,
+              'servicio_id': serviceId,
+              'fecha': dateValue,
+              'hora': timeValue,
               if (customerPhone != null && customerPhone.trim().isNotEmpty)
-                'customerPhone': customerPhone.trim(),
+                'telefono': customerPhone.trim(),
             }),
           )
           .timeout(const Duration(seconds: 20));

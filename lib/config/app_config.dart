@@ -38,5 +38,5 @@ class AppConfig {
   // TODO: Confirmar el precio de este servicio y la moneda configurada.
   static const signatureServicePrice = 45.0;
   static const signatureServiceDuration = Duration(minutes: 60);
-  static const signatureServiceId = 'signature-manicura-rusa';
+  static const signatureServiceId = 1;
 }

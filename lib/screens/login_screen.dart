@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../services/app_session.dart';
+import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/pill_button.dart';
 import 'home_screen.dart';
@@ -25,13 +26,30 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _continue({required bool guest}) {
+  Future<void> _continue({required bool guest}) async {
     if (!guest && !_formKey.currentState!.validate()) return;
     if (guest) {
       AppSession.instance.setGuest();
     } else {
-      AppSession.instance.setEmailUser(_email.text);
+      try {
+        final token = await AuthService.instance.login(
+          correo: _email.text,
+          contrasena: _password.text,
+        );
+        if (!mounted) return;
+        AppSession.instance.setAuthenticatedUser(
+          emailAddress: _email.text,
+          token: token,
+        );
+      } on AuthException catch (error) {
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error.message)),
+        );
+        return;
+      }
     }
+    if (!mounted) return;
     Navigator.pushReplacement(
       context,
       MaterialPageRoute<void>(builder: (_) => const HomeScreen()),
@@ -208,14 +226,26 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 16),
                   Center(
                     child: TextButton(
-                      onPressed: () => ScaffoldMessenger.of(context)
-                          .showSnackBar(
+                      onPressed: () async {
+                        if (!_formKey.currentState!.validate()) return;
+                        try {
+                          await AuthService.instance.register(
+                            correo: _email.text,
+                            contrasena: _password.text,
+                          );
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                              content: Text(
-                                'La creación de cuentas estará disponible pronto.',
-                              ),
+                              content: Text('Cuenta creada. Ahora puedes iniciar sesión.'),
                             ),
-                          ),
+                          );
+                        } on AuthException catch (error) {
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(error.message)),
+                          );
+                        }
+                      },
                       child: const Text('Crear cuenta'),
                     ),
                   ),
