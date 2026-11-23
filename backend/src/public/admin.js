@@ -43,7 +43,6 @@ function setLoading(loading) {
 }
 
 document.querySelector('#loginForm').addEventListener('submit', async (event) => {
-  event.preventEvent?.();
   event.preventDefault();
   const loginMessage = document.querySelector('#loginMessage');
   loginMessage.textContent = 'Cargando...';
@@ -67,13 +66,11 @@ document.querySelector('#logoutButton').addEventListener('click', async () => {
   showLogin();
 });
 
-document.queryAll = (selector) => document.querySelectorAll(selector);
-
-document.queryAll('.nav-button').forEach((button) => {
+document.querySelectorAll('.nav-button').forEach((button) => {
   button.addEventListener('click', () => {
-    document.queryAll('.nav-button').forEach((item) => item.classList.remove('active'));
+    document.querySelectorAll('.nav-button').forEach((item) => item.classList.remove('active'));
     button.classList.add('active');
-    document.queryAll('.section').forEach((section) => section.classList.add('hidden'));
+    document.querySelectorAll('.section').forEach((section) => section.classList.add('hidden'));
     document.querySelector(`#${button.dataset.section}Section`).classList.remove('hidden');
     document.querySelector('#sectionTitle').textContent =
       button.dataset.section === 'appointments' ? 'Citas' :
@@ -84,9 +81,9 @@ document.queryAll('.nav-button').forEach((button) => {
   });
 });
 
-document.queryAll('.tab').forEach((tab) => {
+document.querySelectorAll('.tab').forEach((tab) => {
   tab.addEventListener('click', () => {
-    document.queryAll('.tab').forEach((item) => item.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach((item) => item.classList.remove('active'));
     tab.classList.add('active');
     state.status = tab.dataset.status;
     loadAppointments();
@@ -125,21 +122,21 @@ async function loadAppointments() {
         <div class="card-row">
           <div>
             <h2>${escapeHtml(row.correo)}</h2>
-            <div class="meta">${escapeHtml(row.correo)}<br>${escapeHtml(row.telefono || 'Sin teléfono')}</div>
+            <div class="meta">${escapeHtml(row.telefono || 'Sin teléfono')}</div>
           </div>
-          <span class="badge">${escapeHtml(row.status)}</span>
+          <span class="badge">${escapeHtml(row.estado)}</span>
         </div>
         <div class="meta">
           ${escapeHtml(row.servicio)} · $${Number(row.precio || 0).toFixed(2)}<br>
           Manicurista: ${escapeHtml(row.manicurista || 'Sin asignar')}<br>
           ${dateText} · ${timeText}
         </div>
-        ${row.status === 'pendiente'
+        ${row.estado === 'pendiente'
           ? `<button class="primary confirm-button" data-id="${escapeHtml(row.id)}">Confirmar</button>`
           : ''}
       </article>`;
     }).join('');
-    document.queryAll('.confirm-button').forEach((button) => {
+    document.querySelectorAll('.confirm-button').forEach((button) => {
       button.addEventListener('click', () => confirmAppointment(button.dataset.id));
     });
   } catch (error) {
@@ -190,7 +187,7 @@ async function loadSpecialists() {
       <div class="card-row"><div><h3>${escapeHtml(row.nombre)}</h3></div>
       <button class="secondary delete-specialist" data-id="${escapeHtml(row.id)}" data-name="${escapeHtml(row.nombre)}">Eliminar</button></div>
     </article>`).join('') : '<div class="card">No hay manicuristas activas.</div>';
-    document.queryAll('.delete-specialist').forEach((button) => button.addEventListener('click', async () => {
+    document.querySelectorAll('.delete-specialist').forEach((button) => button.addEventListener('click', async () => {
       if (!confirm(`¿Eliminar a ${button.dataset.name}?`)) return;
       try {
         await api(`/api/admin/specialists/${encodeURIComponent(button.dataset.id)}`, { method: 'DELETE', body: '{}' });
@@ -238,7 +235,7 @@ async function loadServices() {
       <div class="price-line">Costo: $<input class="service-price" data-id="${escapeHtml(row.id)}" type="number" min="0.01" step="0.01" value="${Number(row.costo).toFixed(2)}">
       <button class="primary save-price" data-id="${escapeHtml(row.id)}">Guardar</button></div>
     </article>`).join('') : '<div class="card">No hay servicios.</div>';
-    document.queryAll('.save-price').forEach((button) => button.addEventListener('click', async () => {
+    document.querySelectorAll('.save-price').forEach((button) => button.addEventListener('click', async () => {
       const input = document.querySelector(`.service-price[data-id="${CSS.escape(button.dataset.id)}"]`);
       try {
         await api(`/api/admin/services/${encodeURIComponent(button.dataset.id)}`, { method:'PUT', body:JSON.stringify({ costo:Number(input.value) }) });
@@ -246,7 +243,7 @@ async function loadServices() {
         loadServices();
       } catch (error) { message(error.message, true); }
     }));
-    document.queryAll('.delete-service').forEach((button) => button.addEventListener('click', async () => {
+    document.querySelectorAll('.delete-service').forEach((button) => button.addEventListener('click', async () => {
       if (!confirm(`¿Eliminar ${button.dataset.name}?`)) return;
       try {
         await api(`/api/admin/services/${encodeURIComponent(button.dataset.id)}`, { method:'DELETE', body:'{}' });

@@ -47,11 +47,7 @@ class _ConfirmacionCitaScreenState extends State<ConfirmacionCitaScreen> {
     final date = DateFormat('EEEE d MMMM yyyy', 'es').format(appointment.start);
     final time =
         '${DateFormat('HH:mm').format(appointment.start)} – ${DateFormat('HH:mm').format(appointment.end)}';
-    final code = appointment.reservationCode.isNotEmpty
-        ? appointment.reservationCode
-        : appointment.eventId.length > 8
-        ? appointment.eventId.substring(0, 8).toUpperCase()
-        : appointment.eventId.toUpperCase();
+    final code = appointment.reservationCode;
 
     return Scaffold(
       body: SafeArea(

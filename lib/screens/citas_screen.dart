@@ -2,16 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../config/app_config.dart';
-import '../services/appointment_service.dart';
+import '../navigation/tabs.dart';
 import '../services/app_session.dart';
+import '../services/appointment_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_header.dart';
 import '../widgets/bottom_nav_bar.dart';
 import '../widgets/pill_button.dart';
 import 'confirmacion_cita_screen.dart';
-import 'home_screen.dart';
 import 'perfil_screen.dart';
-import 'servicios_screen.dart';
 
 DateTime _initialBookingDay() {
   final today = DateUtils.dateOnly(DateTime.now());
@@ -188,21 +187,6 @@ class _CitasScreenState extends State<CitasScreen> {
     }
   }
 
-  void _navigate(int index) {
-    final page = switch (index) {
-      0 => const HomeScreen(),
-      1 => ServiciosScreen(),
-      3 => const PerfilScreen(),
-      _ => const CitasScreen(),
-    };
-    if (index != 2) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute<void>(builder: (_) => page),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final month = DateFormat('MMMM yyyy', 'es').format(_selectedDay);
@@ -344,7 +328,10 @@ class _CitasScreenState extends State<CitasScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: BottomNavBar(selectedIndex: 2, onTap: _navigate),
+      bottomNavigationBar: BottomNavBar(
+        selectedIndex: 2,
+        onTap: (index) => openTab(context, index),
+      ),
     );
   }
 

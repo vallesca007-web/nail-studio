@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../services/app_session.dart';
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
-import '../widgets/pill_button.dart';
+import '../widgets/app_button.dart';
 import 'home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -18,6 +18,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _email = TextEditingController();
   final _password = TextEditingController();
   bool _hidePassword = true;
+  bool _submitting = false;
 
   @override
   void dispose() {
@@ -26,34 +27,62 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  Future<void> _continue({required bool guest}) async {
-    if (!guest && !_formKey.currentState!.validate()) return;
-    if (guest) {
-      AppSession.instance.setGuest();
-    } else {
-      try {
-        final token = await AuthService.instance.login(
-          correo: _email.text,
-          contrasena: _password.text,
-        );
-        if (!mounted) return;
-        AppSession.instance.setAuthenticatedUser(
-          emailAddress: _email.text,
-          token: token,
-        );
-      } on AuthException catch (error) {
-        if (!context.mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(error.message)),
-        );
-        return;
-      }
-    }
-    if (!mounted) return;
+  bool get _formIsValid => _formKey.currentState?.validate() ?? false;
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  void _goHome() {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute<void>(builder: (_) => const HomeScreen()),
     );
+  }
+
+  Future<void> _login() async {
+    if (_submitting || !_formIsValid) return;
+    setState(() => _submitting = true);
+    try {
+      final token = await AuthService.instance.login(
+        correo: _email.text,
+        contrasena: _password.text,
+      );
+      AppSession.instance.setAuthenticatedUser(
+        emailAddress: _email.text,
+        token: token,
+      );
+      if (mounted) _goHome();
+    } on AuthException catch (error) {
+      if (mounted) _showMessage(error.message);
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  Future<void> _register() async {
+    if (_submitting || !_formIsValid) return;
+    setState(() => _submitting = true);
+    try {
+      await AuthService.instance.register(
+        correo: _email.text,
+        contrasena: _password.text,
+      );
+      if (mounted) {
+        _showMessage('Cuenta creada. Ahora puedes iniciar sesión.');
+      }
+    } on AuthException catch (error) {
+      if (mounted) _showMessage(error.message);
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  void _enterAsGuest() {
+    AppSession.instance.setGuest();
+    _goHome();
   }
 
   @override
@@ -143,6 +172,8 @@ class _LoginScreenState extends State<LoginScreen> {
                           TextFormField(
                             controller: _email,
                             keyboardType: TextInputType.emailAddress,
+                            textInputAction: TextInputAction.next,
+                            autofillHints: const [AutofillHints.email],
                             decoration: const InputDecoration(
                               hintText: 'Ingresar correo',
                               prefixIcon: Icon(Icons.mail_outline),
@@ -164,10 +195,16 @@ class _LoginScreenState extends State<LoginScreen> {
                           TextFormField(
                             controller: _password,
                             obscureText: _hidePassword,
+                            textInputAction: TextInputAction.done,
+                            autofillHints: const [AutofillHints.password],
+                            onFieldSubmitted: (_) => _login(),
                             decoration: InputDecoration(
                               hintText: 'Contraseña',
                               prefixIcon: const Icon(Icons.lock_outline),
                               suffixIcon: IconButton(
+                                tooltip: _hidePassword
+                                    ? 'Mostrar contraseña'
+                                    : 'Ocultar contraseña',
                                 onPressed: () => setState(() {
                                   _hidePassword = !_hidePassword;
                                 }),
@@ -186,20 +223,30 @@ class _LoginScreenState extends State<LoginScreen> {
                           Align(
                             alignment: Alignment.centerRight,
                             child: TextButton(
-                              onPressed: () => ScaffoldMessenger.of(context)
-                                  .showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        'Contacta con el estudio para recuperar tu acceso.',
-                                      ),
+                              onPressed: _submitting
+                                  ? null
+                                  : () => _showMessage(
+                                      'Contacta con el estudio para recuperar tu acceso.',
                                     ),
-                                  ),
+                              style: TextButton.styleFrom(
+                                minimumSize: const Size(48, 48),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                ),
+                              ),
                               child: const Text('¿Olvidaste tu contraseña?'),
                             ),
                           ),
-                          PillButton(
+                          AppButton(
                             label: 'Entrar',
-                            onPressed: () => _continue(guest: false),
+                            loading: _submitting,
+                            onPressed: _login,
+                          ),
+                          const SizedBox(height: 4),
+                          AppButton(
+                            label: 'Crear cuenta',
+                            style: AppButtonStyle.ghost,
+                            onPressed: _submitting ? null : _register,
                           ),
                         ],
                       ),
@@ -211,47 +258,25 @@ class _LoginScreenState extends State<LoginScreen> {
                       Expanded(
                         child: _PromoTile(
                           title: 'Nail Art Couture',
-                          imageUrl: 'https://images.unsplash.com/photo-1604654894610-df63bc536371?auto=format&fit=crop&w=700&q=80',
+                          imageUrl:
+                              'https://images.unsplash.com/photo-1604654894610-df63bc536371?auto=format&fit=crop&w=700&q=80',
                         ),
                       ),
                       SizedBox(width: 12),
                       Expanded(
                         child: _PromoTile(
                           title: 'Atención Privada',
-                          imageUrl: 'https://images.unsplash.com/photo-1600948836101-f9ffda59d250?auto=format&fit=crop&w=700&q=80',
+                          imageUrl:
+                              'https://images.unsplash.com/photo-1600948836101-f9ffda59d250?auto=format&fit=crop&w=700&q=80',
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
-                  Center(
-                    child: TextButton(
-                      onPressed: () async {
-                        if (!_formKey.currentState!.validate()) return;
-                        try {
-                          await AuthService.instance.register(
-                            correo: _email.text,
-                            contrasena: _password.text,
-                          );
-                          if (!context.mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Cuenta creada. Ahora puedes iniciar sesión.'),
-                            ),
-                          );
-                        } on AuthException catch (error) {
-                          if (!context.mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text(error.message)),
-                          );
-                        }
-                      },
-                      child: const Text('Crear cuenta'),
-                    ),
-                  ),
-                  SecondaryPill(
+                  const SizedBox(height: 12),
+                  AppButton(
                     label: 'Continuar como invitada',
-                    onPressed: () => _continue(guest: true),
+                    style: AppButtonStyle.secondary,
+                    onPressed: _submitting ? null : _enterAsGuest,
                   ),
                 ],
               ),

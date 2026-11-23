@@ -34,48 +34,36 @@ class AppointmentService {
   AppointmentService._();
 
   static final AppointmentService instance = AppointmentService._();
+  static const _timeout = Duration(seconds: 15);
+  static const _invalidResponse = 'El servidor devolvió una respuesta inválida.';
+
   final http.Client _client = http.Client();
 
-  Uri _endpoint(String path) {
+  Uri _endpoint(String path, [Map<String, String>? query]) {
     final base = AppConfig.apiBaseUrl.replaceFirst(RegExp(r'/$'), '');
-    return Uri.parse('$base/$path');
+    return Uri.parse('$base/$path').replace(queryParameters: query);
   }
 
   Future<AppointmentAvailability> getAvailability({
     required DateTime date,
     required int serviceId,
   }) async {
-    final dateValue =
-        '${date.year.toString().padLeft(4, '0')}-'
-        '${date.month.toString().padLeft(2, '0')}-'
-        '${date.day.toString().padLeft(2, '0')}';
-    try {
-      final response = await _client
-          .get(
-            _endpoint('availability').replace(
-              queryParameters: {'date': dateValue, 'serviceId': '$serviceId'},
-            ),
-          )
-          .timeout(const Duration(seconds: 12));
-      final body = _decodeResponse(response);
-      return AppointmentAvailability(
-        morning: _parseTimes(dateValue, body['morning']),
-        afternoon: _parseTimes(dateValue, body['afternoon']),
-        price: body['costo'] is num ? (body['costo'] as num).toDouble() : null,
-      );
-    } on http.ClientException {
-      throw const AppointmentServiceException(
-        'No pudimos conectar con el servidor de reservas.',
-      );
-    } on TimeoutException {
-      throw const AppointmentServiceException(
-        'El servidor de reservas tardó demasiado en responder.',
-      );
-    } on FormatException {
-      throw const AppointmentServiceException(
-        'El servidor devolvió una respuesta inválida.',
-      );
-    }
+    final dateValue = _formatDate(date);
+    final body = _asMap(
+      await _send(
+        () => _client.get(
+          _endpoint('availability', {
+            'date': dateValue,
+            'serviceId': '$serviceId',
+          }),
+        ),
+      ),
+    );
+    return AppointmentAvailability(
+      morning: _parseTimes(dateValue, body['morning']),
+      afternoon: _parseTimes(dateValue, body['afternoon']),
+      price: body['costo'] is num ? (body['costo'] as num).toDouble() : null,
+    );
   }
 
   Future<Appointment> createAppointment({
@@ -85,82 +73,101 @@ class AppointmentService {
     required String token,
     String? customerPhone,
   }) async {
-    final dateValue =
-        '${date.year.toString().padLeft(4, '0')}-'
-        '${date.month.toString().padLeft(2, '0')}-'
-        '${date.day.toString().padLeft(2, '0')}';
-    final timeValue =
-        '${time.hour.toString().padLeft(2, '0')}:'
-        '${time.minute.toString().padLeft(2, '0')}';
+    final body = _asMap(
+      await _send(
+        () => _client.post(
+          _endpoint('appointments'),
+          headers: {
+            'content-type': 'application/json',
+            'authorization': 'Bearer $token',
+          },
+          body: jsonEncode({
+            'servicio_id': serviceId,
+            'fecha': _formatDate(date),
+            'hora': _formatTime(time),
+            if (customerPhone != null && customerPhone.trim().isNotEmpty)
+              'telefono': customerPhone.trim(),
+          }),
+        ),
+      ),
+    );
+    return Appointment.fromJson(body);
+  }
+
+  /// Citas de la usuaria, de la más antigua a la más reciente.
+  Future<List<Appointment>> loadMine({required String token}) async {
+    if (token.isEmpty) {
+      throw const AppointmentServiceException(
+        'Inicia sesión para consultar tus citas.',
+      );
+    }
+    final values = await _send(
+      () => _client.get(
+        _endpoint('appointments/mine'),
+        headers: {'authorization': 'Bearer $token'},
+      ),
+    );
+    if (values is! List) {
+      throw const AppointmentServiceException(_invalidResponse);
+    }
+    return values.map((value) {
+      if (value is! Map<String, dynamic>) {
+        throw const AppointmentServiceException(_invalidResponse);
+      }
+      return Appointment.fromJson(value);
+    }).toList()..sort((first, second) => first.start.compareTo(second.start));
+  }
+
+  /// Envía la petición y traduce los fallos de red a mensajes para la usuaria.
+  Future<Object?> _send(Future<http.Response> Function() request) async {
     try {
-      final response = await _client
-          .post(
-            _endpoint('appointments'),
-            headers: {
-              'content-type': 'application/json',
-              'authorization': 'Bearer $token',
-            },
-            body: jsonEncode({
-              'servicio_id': serviceId,
-              'fecha': dateValue,
-              'hora': timeValue,
-              if (customerPhone != null && customerPhone.trim().isNotEmpty)
-                'telefono': customerPhone.trim(),
-            }),
-          )
-          .timeout(const Duration(seconds: 20));
-      return Appointment.fromJson(_decodeResponse(response));
+      final response = await request().timeout(_timeout);
+      final decoded = jsonDecode(response.body);
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return decoded;
+      }
+      throw AppointmentServiceException(
+        decoded is Map<String, dynamic> && decoded['error'] is String
+            ? decoded['error'] as String
+            : 'No se pudo completar la operación (${response.statusCode}).',
+        statusCode: response.statusCode,
+      );
     } on http.ClientException {
       throw const AppointmentServiceException(
-        'No pudimos conectar con el servidor de reservas.',
+        'No pudimos conectar con el servidor.',
       );
     } on TimeoutException {
       throw const AppointmentServiceException(
-        'El servidor de reservas tardó demasiado en responder.',
+        'El servidor tardó demasiado en responder.',
       );
     } on FormatException {
-      throw const AppointmentServiceException(
-        'El servidor devolvió una respuesta inválida.',
-      );
+      throw const AppointmentServiceException(_invalidResponse);
     }
   }
 
-  Map<String, dynamic> _decodeResponse(http.Response response) {
-    dynamic decoded;
-    try {
-      decoded = jsonDecode(response.body);
-    } on FormatException {
-      throw const AppointmentServiceException(
-        'El servidor devolvió una respuesta inválida.',
-      );
-    }
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      final message =
-          decoded is Map<String, dynamic> && decoded['error'] is String
-          ? decoded['error'] as String
-          : 'No se pudo completar la reserva (${response.statusCode}).';
-      throw AppointmentServiceException(
-        message,
-        statusCode: response.statusCode,
-      );
-    }
-    if (decoded is! Map<String, dynamic>) {
-      throw const AppointmentServiceException(
-        'El servidor devolvió una respuesta inválida.',
-      );
-    }
-    return decoded;
+  Map<String, dynamic> _asMap(Object? value) {
+    if (value is Map<String, dynamic>) return value;
+    throw const AppointmentServiceException(_invalidResponse);
   }
 
   List<DateTime> _parseTimes(String date, Object? values) {
-    if (values is! List<dynamic>) {
-      throw const FormatException('La lista de horarios no es válida.');
+    if (values is! List) {
+      throw const AppointmentServiceException(_invalidResponse);
     }
     return values.map((value) {
       if (value is! String || !RegExp(r'^\d{2}:\d{2}$').hasMatch(value)) {
-        throw const FormatException('Un horario del servidor no es válido.');
+        throw const AppointmentServiceException(_invalidResponse);
       }
       return DateTime.parse('${date}T$value:00');
     }).toList();
   }
+
+  String _formatDate(DateTime date) =>
+      '${date.year.toString().padLeft(4, '0')}-'
+      '${date.month.toString().padLeft(2, '0')}-'
+      '${date.day.toString().padLeft(2, '0')}';
+
+  String _formatTime(DateTime time) =>
+      '${time.hour.toString().padLeft(2, '0')}:'
+      '${time.minute.toString().padLeft(2, '0')}';
 }

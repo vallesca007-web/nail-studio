@@ -13,19 +13,12 @@ class AppSession {
     required String emailAddress,
     required String token,
   }) {
-    email = emailAddress.trim();
-    displayName = email.split('@').first;
+    final address = emailAddress.trim();
+    email = address;
+    displayName = address.split('@').first;
     photoUrl = null;
     isGoogleUser = false;
     authToken = token;
-  }
-
-  void setEmailUser(String emailAddress) {
-    email = emailAddress.trim();
-    displayName = email.split('@').first;
-    photoUrl = null;
-    isGoogleUser = false;
-    authToken = '';
   }
 
   void setGuest() {

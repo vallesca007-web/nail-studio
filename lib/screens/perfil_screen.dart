@@ -2,15 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../models/appointment.dart';
+import '../navigation/tabs.dart';
 import '../services/app_session.dart';
+import '../services/appointment_service.dart';
 import '../services/google_sign_in_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_header.dart';
 import '../widgets/bottom_nav_bar.dart';
 import 'citas_screen.dart';
-import 'home_screen.dart';
 import 'login_screen.dart';
-import 'servicios_screen.dart';
 
 class PerfilScreen extends StatefulWidget {
   const PerfilScreen({super.key});
@@ -37,7 +37,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
       _appointmentsError = null;
     });
     try {
-      final appointments = await AppointmentStore.instance.load(
+      final appointments = await AppointmentService.instance.loadMine(
         token: AppSession.instance.authToken,
       );
       if (!mounted) return;
@@ -54,25 +54,9 @@ class _PerfilScreenState extends State<PerfilScreen> {
     }
   }
 
-  void _navigate(BuildContext context, int index) {
-    final page = switch (index) {
-      0 => const HomeScreen(),
-      1 => ServiciosScreen(),
-      2 => const CitasScreen(),
-      _ => const PerfilScreen(),
-    };
-    if (index != 3) {
-      Navigator.push(context, MaterialPageRoute<void>(builder: (_) => page));
-    }
-  }
-
   Future<void> _showAppointments() async {
-    final appointments = _appointments;
-    if (appointments == null) {
-      await _loadAppointments();
-      if (!mounted) return;
-    }
-    if (_appointments == null) return;
+    if (_appointments == null) await _loadAppointments();
+    if (!mounted || _appointments == null) return;
 
     await showModalBottomSheet<void>(
       context: context,
@@ -81,12 +65,12 @@ class _PerfilScreenState extends State<PerfilScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
       ),
-      builder: (context) => _AppointmentHistorySheet(
+      builder: (sheetContext) => _AppointmentHistorySheet(
         appointments: _appointments!,
         onBook: () {
-          Navigator.pop(context);
+          Navigator.pop(sheetContext);
           Navigator.push(
-            this.context,
+            context,
             MaterialPageRoute<void>(builder: (_) => const CitasScreen()),
           );
         },
@@ -119,74 +103,35 @@ class _PerfilScreenState extends State<PerfilScreen> {
   Widget build(BuildContext context) {
     final session = AppSession.instance;
     final appointments = _appointments ?? const <Appointment>[];
-    final now = DateTime.now();
-    final activeAppointments = appointments
-        .where((appointment) => appointment.start.isAfter(now))
-        .toList();
-    final recent = appointments.isEmpty
-        ? null
-        : appointments.reduce(
-            (first, second) =>
-                first.start.isAfter(second.start) ? first : second,
-          );
+    final activeCount = appointments
+        .where((appointment) => appointment.start.isAfter(DateTime.now()))
+        .length;
+    // loadMine ordena de más antigua a más reciente.
+    final recent = appointments.isEmpty ? null : appointments.last;
 
     return Scaffold(
       body: SafeArea(
         child: Column(
           children: [
-            AppHeader(onProfileTap: () {}),
+            AppHeader(),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(22, 4, 22, 22),
                 children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('CUENTA PERSONAL', style: AppTheme.labelStyle),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Mi perfil',
-                              style: AppTheme.titleStyle.copyWith(fontSize: 30),
-                            ),
-                          ],
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: () {},
-                        icon: const Icon(Icons.notifications_none_rounded),
-                        style: IconButton.styleFrom(
-                          backgroundColor: AppTheme.surface,
-                          foregroundColor: AppTheme.accent,
-                        ),
-                      ),
-                    ],
+                  Text('CUENTA PERSONAL', style: AppTheme.labelStyle),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Mi perfil',
+                    style: AppTheme.titleStyle.copyWith(fontSize: 30),
                   ),
                   const SizedBox(height: 17),
-                  _accountCard(
-                    session: session,
-                    activeCount: activeAppointments.length,
-                  ),
+                  _accountCard(session: session, activeCount: activeCount),
                   const SizedBox(height: 24),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          'ACTIVIDAD RECIENTE',
-                          style: AppTheme.labelStyle.copyWith(
-                            color: AppTheme.text,
-                          ),
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: _showAppointments,
-                        child: const Text('Ver historial'),
-                      ),
-                    ],
+                  Text(
+                    'ACTIVIDAD RECIENTE',
+                    style: AppTheme.labelStyle.copyWith(color: AppTheme.text),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 10),
                   _recentAppointment(recent),
                   if (_appointmentsError != null) ...[
                     const SizedBox(height: 10),
@@ -200,14 +145,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
                         backgroundColor: AppTheme.softPink,
                       ),
                     ),
-                  const SizedBox(height: 23),
-                  Text(
-                    'PREFERENCIAS Y CUIDADO',
-                    style: AppTheme.labelStyle.copyWith(color: AppTheme.text),
-                  ),
-                  const SizedBox(height: 10),
-                  _preferencesCard(),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 24),
                   OutlinedButton.icon(
                     onPressed: _signingOut ? null : _signOut,
                     icon: const Icon(Icons.logout),
@@ -241,12 +179,15 @@ class _PerfilScreenState extends State<PerfilScreen> {
       ),
       bottomNavigationBar: BottomNavBar(
         selectedIndex: 3,
-        onTap: (index) => _navigate(context, index),
+        onTap: (index) => openTab(context, index),
       ),
     );
   }
 
-  Widget _accountCard({required AppSession session, required int activeCount}) {
+  Widget _accountCard({
+    required AppSession session,
+    required int activeCount,
+  }) {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 25, 20, 20),
       decoration: BoxDecoration(
@@ -346,23 +287,22 @@ class _PerfilScreenState extends State<PerfilScreen> {
 
   Widget _recentAppointment(Appointment? appointment) {
     if (appointment == null) {
+      final hasError = _appointmentsError != null;
       return _ActionCard(
         icon: Icons.calendar_today_outlined,
-        title: _appointmentsError == null
-            ? 'Aún no tienes citas'
-            : 'No se pudieron cargar las citas',
-        subtitle: _appointmentsError == null
-            ? 'Tu próxima visita aparecerá aquí.'
-            : 'Revisa la conexión e inténtalo de nuevo.',
-        onTap: _appointmentsError == null
-            ? () => Navigator.push(
+        title: hasError
+            ? 'No se pudieron cargar las citas'
+            : 'Aún no tienes citas',
+        subtitle: hasError
+            ? 'Revisa la conexión e inténtalo de nuevo.'
+            : 'Tu próxima visita aparecerá aquí.',
+        onTap: hasError
+            ? _loadAppointments
+            : () => Navigator.push(
                 context,
                 MaterialPageRoute<void>(builder: (_) => const CitasScreen()),
-              )
-            : _loadAppointments,
-        trailing: _appointmentsError == null
-            ? Icons.chevron_right
-            : Icons.refresh,
+              ),
+        trailing: hasError ? Icons.refresh : Icons.chevron_right,
       );
     }
 
@@ -399,50 +339,6 @@ class _PerfilScreenState extends State<PerfilScreen> {
           TextButton(
             onPressed: _loadAppointments,
             child: const Text('Reintentar'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _preferencesCard() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 15),
-      decoration: BoxDecoration(
-        color: AppTheme.surface,
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: [
-          BoxShadow(
-            color: AppTheme.text.withValues(alpha: 0.04),
-            blurRadius: 14,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          _PreferenceRow(
-            icon: Icons.calendar_month_outlined,
-            title: 'Mis citas',
-            subtitle: 'Historial, estados y reagendamiento',
-            trailing: const Icon(Icons.chevron_right, color: AppTheme.text),
-            onTap: _showAppointments,
-          ),
-          const Divider(height: 1, indent: 58, color: AppTheme.softPink),
-          _PreferenceRow(
-            icon: Icons.favorite,
-            title: 'Favoritos',
-            subtitle: 'Sets guardados, tonos e inspiración',
-            trailing: const Icon(Icons.chevron_right, color: AppTheme.text),
-            onTap: () {},
-          ),
-          const Divider(height: 1, indent: 58, color: AppTheme.softPink),
-          _PreferenceRow(
-            icon: Icons.tune_rounded,
-            title: 'Ajustes',
-            subtitle: 'Perfil, notificaciones e idioma',
-            trailing: const Icon(Icons.chevron_right, color: AppTheme.text),
-            onTap: () {},
           ),
         ],
       ),
@@ -516,60 +412,6 @@ class _ActionCard extends StatelessWidget {
   }
 }
 
-class _PreferenceRow extends StatelessWidget {
-  const _PreferenceRow({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.trailing,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final Widget trailing;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(18),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        child: Row(
-          children: [
-            CircleAvatar(
-              backgroundColor: AppTheme.field,
-              foregroundColor: AppTheme.accent,
-              child: Icon(icon),
-            ),
-            const SizedBox(width: 13),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: AppTheme.titleStyle.copyWith(fontSize: 19),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(color: AppTheme.muted, fontSize: 11),
-                  ),
-                ],
-              ),
-            ),
-            trailing,
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _AppointmentHistorySheet extends StatelessWidget {
   const _AppointmentHistorySheet({
     required this.appointments,
@@ -581,8 +423,7 @@ class _AppointmentHistorySheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final sorted = appointments.toList()
-      ..sort((first, second) => second.start.compareTo(first.start));
+    final sorted = appointments.reversed.toList();
 
     return SafeArea(
       child: Padding(
@@ -689,7 +530,7 @@ class _AppointmentHistorySheet extends StatelessWidget {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.button,
                   foregroundColor: AppTheme.surface,
-                  minimumSize: const Size.fromHeight(52),
+                  minimumSize: const Size.fromHeight(54),
                   shape: const StadiumBorder(),
                 ),
               ),

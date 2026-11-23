@@ -1,14 +1,12 @@
 const path = require('node:path');
 require('dotenv').config({ path: path.resolve(__dirname, '../../.env') });
 
-const crypto = require('node:crypto');
 const express = require('express');
 const cookieParser = require('cookie-parser');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { google } = require('googleapis');
 const { createPool } = require('mysql2/promise');
 
 const {
@@ -121,7 +119,7 @@ async function getAvailableSlots(date, service) {
   if (!range) throw new ApiError(400, 'La fecha no es válida.');
   let busyRanges;
   try {
-    [busyRanges] = await Promise.all([googleCalendar.getBusyRanges(date)]);
+    busyRanges = await googleCalendar.getBusyRanges(date);
   } catch (error) {
     console.error('No se pudo consultar Google Calendar:', error);
     throw new ApiError(502, 'No pudimos consultar la agenda.');
@@ -262,7 +260,7 @@ app.post('/api/appointments', requireUser, asyncHandler(async (request, response
        FOR UPDATE`,
       [date, formatLocalDateTime(end, timeZone).slice(11, 16), time],
     );
-    const [googleBusy] = await Promise.all([googleCalendar.getBusyRanges(date)]);
+    const googleBusy = await googleCalendar.getBusyRanges(date);
     if (rows.length || googleBusy.some((busy) => start < new Date(busy.end) && end > new Date(busy.start))) {
       throw new ApiError(409, 'Ese horario acaba de ocuparse.');
     }
@@ -273,7 +271,7 @@ app.post('/api/appointments', requireUser, asyncHandler(async (request, response
     const event = await googleCalendar.createEvent({
       serviceName: service.nombre,
       customerName: request.user.correo,
-      customerEmail: null,
+      customerEmail: request.user.correo,
       customerPhone: phone,
       start,
       end,
@@ -304,6 +302,7 @@ app.post('/api/appointments', requireUser, asyncHandler(async (request, response
       fecha: date,
       hora: time,
       estado: 'pendiente',
+      eventUrl: event.eventUrl,
     });
   } catch (error) {
     if (inTransaction) await connection.rollback().catch(() => {});
@@ -325,7 +324,7 @@ app.get('/api/appointments/mine', requireUser, asyncHandler(async (request, resp
   response.json(rows);
 }));
 
-app.use('/api/admin', require('../src/admin/routes')(pool));
+app.use('/api/admin', require('./admin/routes')(pool));
 app.use('/admin', express.static(path.join(__dirname, 'public')));
 app.get('/admin', (request, response) => response.sendFile(path.join(__dirname, 'public/index.html')));
 
@@ -343,7 +342,7 @@ if (require.main === module) {
 }
 
 async function shutdown() {
-  await new Promise((resolve) => server.close(resolve));
+  if (server) await new Promise((resolve) => server.close(resolve));
   await pool.end();
 }
 process.on('SIGINT', shutdown);
