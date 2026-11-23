@@ -16,6 +16,17 @@ Los scripts usan el `DB_NAME` del `.env` (por defecto `AnneNail`): crean esa
 base si no existe, la seleccionan y aplican el SQL. El nombre de la base no
 esta fijo en los archivos `.sql`.
 
+El `.env` puede estar en la raiz del repo o en `backend/`; al arrancar, la API
+imprime de cual lo leyo. Para comprobar la conexion sin levantar el servidor:
+
+```powershell
+npm run db:check
+```
+
+`db:check` muestra usuario, host, puerto y base, y si falla imprime el codigo
+de error de MySQL con la causa (servidor apagado, credenciales, base o tablas
+faltantes).
+
 Si tu MySQL ya tiene la base `AnneNail`, solo faltan las tablas. Desde
 `backend/`:
 
@@ -89,7 +100,8 @@ ADMIN_USER=anneadmin
 ADMIN_PASSWORD_HASH=
 ```
 
-Copia `.env.example` a `.env` y reemplaza todos los marcadores:
+Copia `.env.example` a `.env` en la raiz del repo (o en `backend/`) y reemplaza
+todos los marcadores:
 
 ```powershell
 Copy-Item .env.example .env

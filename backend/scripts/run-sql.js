@@ -2,7 +2,9 @@ const fs = require('node:fs');
 const path = require('node:path');
 const readline = require('node:readline');
 const mysql = require('mysql2/promise');
-require('dotenv').config({ path: path.resolve(__dirname, '../../.env') });
+const { loadEnvironment } = require('../src/config/env');
+
+loadEnvironment();
 
 const files = {
   'setup-local': '../database/setup-local.sql',

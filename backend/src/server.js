@@ -1,5 +1,11 @@
 const path = require('node:path');
-require('dotenv').config({ path: path.resolve(__dirname, '../../.env') });
+const { loadEnvironment } = require('./config/env');
+
+loadEnvironment();
+
+if (!process.env.JWT_SECRET) {
+  console.warn('Falta JWT_SECRET en el .env: el inicio de sesion fallara.');
+}
 
 const express = require('express');
 const cookieParser = require('cookie-parser');

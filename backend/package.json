@@ -11,7 +11,8 @@
     "db:schema": "node scripts/run-sql.js schema",
     "db:seed": "node scripts/run-sql.js seed",
     "db:upgrade": "node scripts/run-sql.js upgrade",
-    "db:reset": "node scripts/run-sql.js reset"
+    "db:reset": "node scripts/run-sql.js reset",
+    "db:check": "node scripts/db-check.js"
   },
   "engines": {
     "node": ">=20"
