@@ -20,17 +20,33 @@ class ConfirmacionCitaScreen extends StatefulWidget {
 class _ConfirmacionCitaScreenState extends State<ConfirmacionCitaScreen> {
   bool _openingCalendar = false;
 
+  // La API crea el evento en Google Calendar cuando está configurado y devuelve
+  // su enlace. Si no lo está, se abre el formulario de Google Calendar ya
+  // lleno con los datos de la cita.
+  Uri get _calendarUri {
+    final eventUrl = widget.appointment.eventUrl;
+    if (eventUrl != null) return Uri.parse(eventUrl);
+
+    final appointment = widget.appointment;
+    final stamp = DateFormat("yyyyMMdd'T'HHmmss");
+    return Uri.https('calendar.google.com', '/calendar/render', {
+      'action': 'TEMPLATE',
+      'text': '${appointment.serviceName} · ${AppConfig.studioName}',
+      'dates':
+          '${stamp.format(appointment.start)}/${stamp.format(appointment.end)}',
+      'details': 'Código de reserva ${appointment.reservationCode}',
+      'location': AppConfig.studioName,
+    });
+  }
+
   Future<void> _openCalendar() async {
     setState(() => _openingCalendar = true);
     try {
-      final url = widget.appointment.eventUrl;
-      if (url == null ||
-          !await launchUrl(
-            Uri.parse(url),
-            mode: LaunchMode.externalApplication,
-          )) {
-        throw StateError('No se pudo abrir la cita en Google Calendar.');
-      }
+      final opened = await launchUrl(
+        _calendarUri,
+        mode: LaunchMode.externalApplication,
+      );
+      if (!opened) throw Exception('No se pudo abrir Google Calendar.');
     } on Exception catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -131,9 +147,7 @@ class _ConfirmacionCitaScreenState extends State<ConfirmacionCitaScreen> {
                         ? 'Abriendo calendario…'
                         : 'Agregar al calendario',
                     icon: Icons.calendar_month_outlined,
-                    onPressed: _openingCalendar || appointment.eventUrl == null
-                        ? null
-                        : _openCalendar,
+                    onPressed: _openingCalendar ? null : _openCalendar,
                   ),
                   const SizedBox(height: 10),
                   TextButton(
