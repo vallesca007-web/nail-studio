@@ -2,24 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
 import '../widgets/app_header.dart';
-import '../widgets/bottom_nav_bar.dart';
-import 'citas_screen.dart';
-import 'home_screen.dart';
-import 'perfil_screen.dart';
-import 'servicios_screen.dart';
 
 class ContactoScreen extends StatelessWidget {
   const ContactoScreen({super.key});
-
-  void _navigate(BuildContext context, int index) {
-    final page = switch (index) {
-      0 => const HomeScreen(),
-      1 => ServiciosScreen(),
-      2 => const CitasScreen(),
-      _ => PerfilScreen(),
-    };
-    Navigator.push(context, MaterialPageRoute<void>(builder: (_) => page));
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +12,7 @@ class ContactoScreen extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            AppHeader(),
+            AppHeader(onBack: () => Navigator.maybePop(context)),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.all(22),
@@ -72,10 +57,6 @@ class ContactoScreen extends StatelessWidget {
             ),
           ],
         ),
-      ),
-      bottomNavigationBar: BottomNavBar(
-        selectedIndex: 1,
-        onTap: (index) => _navigate(context, index),
       ),
     );
   }

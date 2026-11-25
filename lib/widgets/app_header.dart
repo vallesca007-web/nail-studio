@@ -3,9 +3,10 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 
 class AppHeader extends StatelessWidget {
-  const AppHeader({super.key, this.onProfileTap});
+  const AppHeader({super.key, this.onProfileTap, this.onBack});
 
   final VoidCallback? onProfileTap;
+  final VoidCallback? onBack;
 
   @override
   Widget build(BuildContext context) {
@@ -13,6 +14,18 @@ class AppHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 10, 20, 12),
       child: Row(
         children: [
+          if (onBack != null) ...[
+            IconButton(
+              onPressed: onBack,
+              icon: const Icon(Icons.arrow_back_rounded),
+              tooltip: 'Volver',
+              style: IconButton.styleFrom(
+                backgroundColor: AppTheme.surface,
+                minimumSize: const Size(44, 44),
+              ),
+            ),
+            const SizedBox(width: 6),
+          ],
           Container(
             width: 44,
             height: 44,
@@ -41,8 +54,8 @@ class AppHeader extends StatelessWidget {
               onTap: onProfileTap,
               customBorder: const CircleBorder(),
               child: const SizedBox(
-                width: 42,
-                height: 42,
+                width: 44,
+                height: 44,
                 child: Icon(
                   Icons.person_outline,
                   color: AppTheme.surface,

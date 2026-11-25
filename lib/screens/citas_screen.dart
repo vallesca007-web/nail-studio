@@ -2,17 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../config/app_config.dart';
-import '../services/appointment_service.dart';
+import '../navigation/tabs.dart';
 import '../services/app_session.dart';
-import '../services/google_sign_in_service.dart';
+import '../services/appointment_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_header.dart';
 import '../widgets/bottom_nav_bar.dart';
 import '../widgets/pill_button.dart';
 import 'confirmacion_cita_screen.dart';
-import 'home_screen.dart';
 import 'perfil_screen.dart';
-import 'servicios_screen.dart';
 
 DateTime _initialBookingDay() {
   final today = DateUtils.dateOnly(DateTime.now());
@@ -29,7 +27,7 @@ class CitasScreen extends StatefulWidget {
 }
 
 class _CitasScreenState extends State<CitasScreen> {
-  static const _serviceName = 'Manicura Rusa & Esmaltado';
+  static const _serviceName = 'Manicura y Esmaltado';
   static const _serviceDuration = AppConfig.signatureServiceDuration;
 
   DateTime _selectedDay = _initialBookingDay();
@@ -137,14 +135,17 @@ class _CitasScreenState extends State<CitasScreen> {
       _errorMessage = null;
     });
     try {
-      final idToken = await GoogleSignInService.instance.signInAndGetIdToken();
       final session = AppSession.instance;
+      if (session.authToken.isEmpty) {
+        throw const AppointmentServiceException(
+          'Inicia sesión para confirmar tu cita.',
+        );
+      }
       final appointment = await AppointmentService.instance.createAppointment(
         serviceId: AppConfig.signatureServiceId,
         date: day,
         time: slot,
-        customerName: session.displayName,
-        idToken: idToken,
+        token: session.authToken,
         customerPhone: _phoneController.text,
       );
       if (!mounted) return;
@@ -154,18 +155,6 @@ class _CitasScreenState extends State<CitasScreen> {
           builder: (_) => ConfirmacionCitaScreen(appointment: appointment),
         ),
       );
-    } on GoogleSignInCancelledException {
-      if (!mounted) return;
-      setState(() {
-        _booking = false;
-        _errorMessage = 'Inicia sesión con Google para confirmar tu cita.';
-      });
-    } on GoogleSignInServiceException catch (error) {
-      if (!mounted) return;
-      setState(() {
-        _booking = false;
-        _errorMessage = error.message;
-      });
     } on AppointmentServiceException catch (error) {
       if (!mounted) return;
       if (error.statusCode == 409) {
@@ -195,21 +184,6 @@ class _CitasScreenState extends State<CitasScreen> {
         _booking = false;
         _errorMessage = 'No pudimos confirmar la cita. Inténtalo nuevamente.';
       });
-    }
-  }
-
-  void _navigate(int index) {
-    final page = switch (index) {
-      0 => const HomeScreen(),
-      1 => ServiciosScreen(),
-      3 => const PerfilScreen(),
-      _ => const CitasScreen(),
-    };
-    if (index != 2) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute<void>(builder: (_) => page),
-      );
     }
   }
 
@@ -354,7 +328,10 @@ class _CitasScreenState extends State<CitasScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: BottomNavBar(selectedIndex: 2, onTap: _navigate),
+      bottomNavigationBar: BottomNavBar(
+        selectedIndex: 2,
+        onTap: (index) => openTab(context, index),
+      ),
     );
   }
 

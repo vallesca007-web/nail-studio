@@ -43,7 +43,6 @@ function setLoading(loading) {
 }
 
 document.querySelector('#loginForm').addEventListener('submit', async (event) => {
-  event.preventEvent?.();
   event.preventDefault();
   const loginMessage = document.querySelector('#loginMessage');
   loginMessage.textContent = 'Cargando...';
@@ -67,13 +66,11 @@ document.querySelector('#logoutButton').addEventListener('click', async () => {
   showLogin();
 });
 
-document.queryAll = (selector) => document.querySelectorAll(selector);
-
-document.queryAll('.nav-button').forEach((button) => {
+document.querySelectorAll('.nav-button').forEach((button) => {
   button.addEventListener('click', () => {
-    document.queryAll('.nav-button').forEach((item) => item.classList.remove('active'));
+    document.querySelectorAll('.nav-button').forEach((item) => item.classList.remove('active'));
     button.classList.add('active');
-    document.queryAll('.section').forEach((section) => section.classList.add('hidden'));
+    document.querySelectorAll('.section').forEach((section) => section.classList.add('hidden'));
     document.querySelector(`#${button.dataset.section}Section`).classList.remove('hidden');
     document.querySelector('#sectionTitle').textContent =
       button.dataset.section === 'appointments' ? 'Citas' :
@@ -84,9 +81,9 @@ document.queryAll('.nav-button').forEach((button) => {
   });
 });
 
-document.queryAll('.tab').forEach((tab) => {
+document.querySelectorAll('.tab').forEach((tab) => {
   tab.addEventListener('click', () => {
-    document.queryAll('.tab').forEach((item) => item.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach((item) => item.classList.remove('active'));
     tab.classList.add('active');
     state.status = tab.dataset.status;
     loadAppointments();
@@ -119,29 +116,46 @@ async function loadAppointments() {
       return;
     }
     list.innerHTML = rows.map((row) => {
-      const start = new Date(row.start_at);
-      const dateText = start.toLocaleDateString('es-MX');
-      const timeText = start.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+      const dateText = row.fecha;
+      const timeText = String(row.hora).slice(0,5);
       return `<article class="card">
         <div class="card-row">
           <div>
-            <h2>${escapeHtml(row.customer_name)}</h2>
-            <div class="meta">${escapeHtml(row.customer_email)}<br>${escapeHtml(row.customer_phone || 'Sin teléfono')}</div>
+            <h2>${escapeHtml(row.correo)}</h2>
+            <div class="meta">${escapeHtml(row.telefono || 'Sin teléfono')}</div>
           </div>
-          <span class="badge">${escapeHtml(row.status)}</span>
+          <span class="badge">${escapeHtml(row.estado)}</span>
         </div>
         <div class="meta">
-          ${escapeHtml(row.service_name)} · $${Number(row.price || 0).toFixed(2)}<br>
-          Manicurista: ${escapeHtml(row.specialist_name || 'Sin asignar')}<br>
+          ${escapeHtml(row.servicio)} · $${Number(row.precio || 0).toFixed(2)}<br>
+          Manicurista: ${escapeHtml(row.manicurista || 'Sin asignar')}<br>
           ${dateText} · ${timeText}
         </div>
-        ${row.status === 'pendiente'
-          ? `<button class="primary confirm-button" data-id="${escapeHtml(row.event_id)}">Confirmar</button>`
-          : ''}
+        <div class="card-actions">
+          ${row.estado === 'pendiente'
+            ? `<button class="primary confirm-button" data-id="${escapeHtml(row.id)}">Confirmar</button>
+               <button class="secondary reject-button" data-id="${escapeHtml(row.id)}">Rechazar</button>`
+            : ''}
+          ${['pendiente', 'agendada'].includes(row.estado)
+            ? `<button class="secondary cancel-button" data-id="${escapeHtml(row.id)}">Cancelar cita</button>`
+            : ''}
+        </div>
       </article>`;
     }).join('');
-    document.queryAll('.confirm-button').forEach((button) => {
+    document.querySelectorAll('.confirm-button').forEach((button) => {
       button.addEventListener('click', () => confirmAppointment(button.dataset.id));
+    });
+    document.querySelectorAll('.reject-button').forEach((button) => {
+      button.addEventListener('click', () => {
+        if (!confirm('¿Rechazar esta solicitud de cita?')) return;
+        changeAppointmentStatus(button.dataset.id, 'reject', 'Cita rechazada.');
+      });
+    });
+    document.querySelectorAll('.cancel-button').forEach((button) => {
+      button.addEventListener('click', () => {
+        if (!confirm('¿Cancelar esta cita?')) return;
+        changeAppointmentStatus(button.dataset.id, 'cancel', 'Cita cancelada.');
+      });
     });
   } catch (error) {
     message(error.message, true);
@@ -163,6 +177,19 @@ async function confirmAppointment(eventId) {
   }
 }
 
+async function changeAppointmentStatus(id, action, successMessage) {
+  try {
+    await api(`/api/admin/appointments/${encodeURIComponent(id)}/${action}`, {
+      method: 'POST',
+      body: '{}',
+    });
+    message(successMessage);
+    await loadAppointments();
+  } catch (error) {
+    message(error.message, true);
+  }
+}
+
 document.querySelector('#addSpecialistButton').addEventListener('click', () => {
   document.querySelector('#specialistForm').classList.toggle('hidden');
 });
@@ -173,7 +200,7 @@ document.querySelector('#specialistForm').addEventListener('submit', async (even
   try {
     await api('/api/admin/specialists', {
       method: 'POST',
-      body: JSON.stringify({ name: form.get('name'), specialty: form.get('specialty'), photoUrl: form.get('photoUrl') }),
+      body: JSON.stringify({ nombre: form.get('name') }),
     });
     event.currentTarget.reset();
     event.currentTarget.classList.add('hidden');
@@ -188,10 +215,10 @@ async function loadSpecialists() {
     const rows = await api('/api/admin/specialists');
     const list = document.querySelector('#specialistsList');
     list.innerHTML = rows.length ? rows.map((row) => `<article class="card">
-      <div class="card-row"><div><h3>${escapeHtml(row.name)}</h3><div class="meta">${escapeHtml(row.specialty || 'Especialidad no indicada')}</div></div>
-      <button class="secondary delete-specialist" data-id="${escapeHtml(row.specialist_id)}" data-name="${escapeHtml(row.name)}">Eliminar</button></div>
+      <div class="card-row"><div><h3>${escapeHtml(row.nombre)}</h3></div>
+      <button class="secondary delete-specialist" data-id="${escapeHtml(row.id)}" data-name="${escapeHtml(row.nombre)}">Eliminar</button></div>
     </article>`).join('') : '<div class="card">No hay manicuristas activas.</div>';
-    document.queryAll('.delete-specialist').forEach((button) => button.addEventListener('click', async () => {
+    document.querySelectorAll('.delete-specialist').forEach((button) => button.addEventListener('click', async () => {
       if (!confirm(`¿Eliminar a ${button.dataset.name}?`)) return;
       try {
         await api(`/api/admin/specialists/${encodeURIComponent(button.dataset.id)}`, { method: 'DELETE', body: '{}' });
@@ -213,9 +240,9 @@ document.querySelector('#serviceForm').addEventListener('submit', async (event) 
     await api('/api/admin/services', {
       method: 'POST',
       body: JSON.stringify({
-        name: form.get('name'), description: form.get('description'),
-        category: form.get('category'), durationMinutes: Number(form.get('durationMinutes')),
-        price: Number(form.get('price')),
+        nombre: form.get('name'),
+        costo: Number(form.get('price')),
+        duracion_min: Number(form.get('durationMinutes')),
       }),
     });
     event.currentTarget.reset();
@@ -231,23 +258,23 @@ async function loadServices() {
     state.services = await api('/api/admin/services');
     const select = document.querySelector('#priceServiceId');
     select.innerHTML = state.services.map((row) =>
-      `<option value="${escapeHtml(row.service_id)}">${escapeHtml(row.name)}</option>`).join('');
+      `<option value="${escapeHtml(row.id)}">${escapeHtml(row.nombre)}</option>`).join('');
     const list = document.querySelector('#servicesList');
     list.innerHTML = state.services.length ? state.services.map((row) => `<article class="card">
-      <div class="card-row"><div><h3>${escapeHtml(row.name)}</h3><div class="meta">${escapeHtml(row.category)} · ${row.duration_minutes} minutos<br>${escapeHtml(row.description)}</div></div>
-      <button class="secondary delete-service" data-id="${escapeHtml(row.service_id)}" data-name="${escapeHtml(row.name)}">Eliminar</button></div>
-      <div class="price-line">Precio: $<input class="service-price" data-id="${escapeHtml(row.service_id)}" type="number" min="0.01" step="0.01" value="${Number(row.price).toFixed(2)}">
-      <button class="primary save-price" data-id="${escapeHtml(row.service_id)}">Guardar</button></div>
+      <div class="card-row"><div><h3>${escapeHtml(row.nombre)}</h3><div class="meta">${row.duracion_min} minutos</div></div>
+      <button class="secondary delete-service" data-id="${escapeHtml(row.id)}" data-name="${escapeHtml(row.nombre)}">Eliminar</button></div>
+      <div class="price-line">Costo: $<input class="service-price" data-id="${escapeHtml(row.id)}" type="number" min="0.01" step="0.01" value="${Number(row.costo).toFixed(2)}">
+      <button class="primary save-price" data-id="${escapeHtml(row.id)}">Guardar</button></div>
     </article>`).join('') : '<div class="card">No hay servicios.</div>';
-    document.queryAll('.save-price').forEach((button) => button.addEventListener('click', async () => {
+    document.querySelectorAll('.save-price').forEach((button) => button.addEventListener('click', async () => {
       const input = document.querySelector(`.service-price[data-id="${CSS.escape(button.dataset.id)}"]`);
       try {
-        await api(`/api/admin/services/${encodeURIComponent(button.dataset.id)}`, { method:'PUT', body:JSON.stringify({ price:Number(input.value) }) });
+        await api(`/api/admin/services/${encodeURIComponent(button.dataset.id)}`, { method:'PUT', body:JSON.stringify({ costo:Number(input.value) }) });
         message('Precio actualizado.');
         loadServices();
       } catch (error) { message(error.message, true); }
     }));
-    document.queryAll('.delete-service').forEach((button) => button.addEventListener('click', async () => {
+    document.querySelectorAll('.delete-service').forEach((button) => button.addEventListener('click', async () => {
       if (!confirm(`¿Eliminar ${button.dataset.name}?`)) return;
       try {
         await api(`/api/admin/services/${encodeURIComponent(button.dataset.id)}`, { method:'DELETE', body:'{}' });

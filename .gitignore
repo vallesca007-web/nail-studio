@@ -24,7 +24,11 @@ migrate_working_dir/
 #.vscode/
 
 # Flutter/Dart/Pub related
-/.env
+.env
+.env.txt
+node_modules/
+backend/node_modules/
+backend/database/backups/
 backend/*.key
 backend/*service-account*.json
 backend/*credentials*.json

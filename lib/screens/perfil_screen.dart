@@ -2,15 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../models/appointment.dart';
+import '../navigation/tabs.dart';
 import '../services/app_session.dart';
+import '../services/appointment_service.dart';
 import '../services/google_sign_in_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_header.dart';
 import '../widgets/bottom_nav_bar.dart';
+import '../widgets/preferences_section.dart';
+import 'ajustes_screen.dart';
 import 'citas_screen.dart';
-import 'home_screen.dart';
+import 'favoritos_screen.dart';
 import 'login_screen.dart';
-import 'servicios_screen.dart';
+import 'mis_citas_screen.dart';
 
 class PerfilScreen extends StatefulWidget {
   const PerfilScreen({super.key});
@@ -37,8 +41,8 @@ class _PerfilScreenState extends State<PerfilScreen> {
       _appointmentsError = null;
     });
     try {
-      final appointments = await AppointmentStore.instance.load(
-        customerEmail: AppSession.instance.email,
+      final appointments = await AppointmentService.instance.loadMine(
+        token: AppSession.instance.authToken,
       );
       if (!mounted) return;
       setState(() {
@@ -54,25 +58,9 @@ class _PerfilScreenState extends State<PerfilScreen> {
     }
   }
 
-  void _navigate(BuildContext context, int index) {
-    final page = switch (index) {
-      0 => const HomeScreen(),
-      1 => ServiciosScreen(),
-      2 => const CitasScreen(),
-      _ => const PerfilScreen(),
-    };
-    if (index != 3) {
-      Navigator.push(context, MaterialPageRoute<void>(builder: (_) => page));
-    }
-  }
-
   Future<void> _showAppointments() async {
-    final appointments = _appointments;
-    if (appointments == null) {
-      await _loadAppointments();
-      if (!mounted) return;
-    }
-    if (_appointments == null) return;
+    if (_appointments == null) await _loadAppointments();
+    if (!mounted || _appointments == null) return;
 
     await showModalBottomSheet<void>(
       context: context,
@@ -81,17 +69,86 @@ class _PerfilScreenState extends State<PerfilScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
       ),
-      builder: (context) => _AppointmentHistorySheet(
+      builder: (sheetContext) => _AppointmentHistorySheet(
         appointments: _appointments!,
+        onCancel: _cancelAppointment,
         onBook: () {
-          Navigator.pop(context);
+          Navigator.pop(sheetContext);
           Navigator.push(
-            this.context,
+            context,
             MaterialPageRoute<void>(builder: (_) => const CitasScreen()),
           );
         },
       ),
     );
+  }
+
+  Future<void> _openAppointmentsScreen() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute<void>(builder: (_) => const MisCitasScreen()),
+    );
+    if (mounted) await _loadAppointments();
+  }
+
+  void _showFavorites() {
+    Navigator.push(
+      context,
+      MaterialPageRoute<void>(builder: (_) => const FavoritosScreen()),
+    );
+  }
+
+  Future<void> _showSettings() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute<void>(builder: (_) => const AjustesScreen()),
+    );
+    if (mounted) setState(() {});
+  }
+
+  Future<Appointment?> _cancelAppointment(Appointment appointment) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Cancelar cita'),
+        content: const Text('¿Quieres cancelar esta cita?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Volver'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Cancelar cita'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted) return null;
+    if (confirmed != true) return null;
+
+    try {
+      await AppointmentService.instance.cancelAppointment(
+        appointmentId: appointment.id,
+        token: AppSession.instance.authToken,
+      );
+      if (!mounted) return null;
+      final cancelled = appointment.copyWith(estado: 'cancelada');
+      setState(() {
+        _appointments = _appointments
+            ?.map((item) => item.id == cancelled.id ? cancelled : item)
+            .toList();
+      });
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Cita cancelada.')));
+      return cancelled;
+    } on AppointmentServiceException catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(error.message)));
+      }
+      return null;
+    }
   }
 
   Future<void> _signOut() async {
@@ -119,74 +176,39 @@ class _PerfilScreenState extends State<PerfilScreen> {
   Widget build(BuildContext context) {
     final session = AppSession.instance;
     final appointments = _appointments ?? const <Appointment>[];
-    final now = DateTime.now();
-    final activeAppointments = appointments
-        .where((appointment) => appointment.start.isAfter(now))
-        .toList();
-    final recent = appointments.isEmpty
-        ? null
-        : appointments.reduce(
-            (first, second) =>
-                first.start.isAfter(second.start) ? first : second,
-          );
+    final activeCount = appointments
+        .where(
+          (appointment) =>
+              (appointment.start?.isAfter(DateTime.now()) ?? false) &&
+              ['pendiente', 'agendada'].contains(appointment.estado),
+        )
+        .length;
+    // loadMine ordena de más antigua a más reciente.
+    final recent = appointments.isEmpty ? null : appointments.last;
 
     return Scaffold(
       body: SafeArea(
         child: Column(
           children: [
-            AppHeader(onProfileTap: () {}),
+            AppHeader(),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(22, 4, 22, 22),
                 children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('CUENTA PERSONAL', style: AppTheme.labelStyle),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Mi perfil',
-                              style: AppTheme.titleStyle.copyWith(fontSize: 30),
-                            ),
-                          ],
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: () {},
-                        icon: const Icon(Icons.notifications_none_rounded),
-                        style: IconButton.styleFrom(
-                          backgroundColor: AppTheme.surface,
-                          foregroundColor: AppTheme.accent,
-                        ),
-                      ),
-                    ],
+                  Text('CUENTA PERSONAL', style: AppTheme.labelStyle),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Mi perfil',
+                    style: AppTheme.titleStyle.copyWith(fontSize: 30),
                   ),
                   const SizedBox(height: 17),
-                  _accountCard(
-                    session: session,
-                    activeCount: activeAppointments.length,
-                  ),
+                  _accountCard(session: session, activeCount: activeCount),
                   const SizedBox(height: 24),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          'ACTIVIDAD RECIENTE',
-                          style: AppTheme.labelStyle.copyWith(
-                            color: AppTheme.text,
-                          ),
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: _showAppointments,
-                        child: const Text('Ver historial'),
-                      ),
-                    ],
+                  Text(
+                    'ACTIVIDAD RECIENTE',
+                    style: AppTheme.labelStyle.copyWith(color: AppTheme.text),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 10),
                   _recentAppointment(recent),
                   if (_appointmentsError != null) ...[
                     const SizedBox(height: 10),
@@ -200,13 +222,12 @@ class _PerfilScreenState extends State<PerfilScreen> {
                         backgroundColor: AppTheme.softPink,
                       ),
                     ),
-                  const SizedBox(height: 23),
-                  Text(
-                    'PREFERENCIAS Y CUIDADO',
-                    style: AppTheme.labelStyle.copyWith(color: AppTheme.text),
+                  const SizedBox(height: 24),
+                  PreferencesSection(
+                    onAppointmentsTap: _openAppointmentsScreen,
+                    onFavoritesTap: _showFavorites,
+                    onSettingsTap: _showSettings,
                   ),
-                  const SizedBox(height: 10),
-                  _preferencesCard(),
                   const SizedBox(height: 20),
                   OutlinedButton.icon(
                     onPressed: _signingOut ? null : _signOut,
@@ -241,7 +262,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
       ),
       bottomNavigationBar: BottomNavBar(
         selectedIndex: 3,
-        onTap: (index) => _navigate(context, index),
+        onTap: (index) => openTab(context, index),
       ),
     );
   }
@@ -346,34 +367,33 @@ class _PerfilScreenState extends State<PerfilScreen> {
 
   Widget _recentAppointment(Appointment? appointment) {
     if (appointment == null) {
+      final hasError = _appointmentsError != null;
       return _ActionCard(
         icon: Icons.calendar_today_outlined,
-        title: _appointmentsError == null
-            ? 'Aún no tienes citas'
-            : 'No se pudieron cargar las citas',
-        subtitle: _appointmentsError == null
-            ? 'Tu próxima visita aparecerá aquí.'
-            : 'Revisa la conexión e inténtalo de nuevo.',
-        onTap: _appointmentsError == null
-            ? () => Navigator.push(
+        title: hasError
+            ? 'No se pudieron cargar las citas'
+            : 'Aún no tienes citas',
+        subtitle: hasError
+            ? 'Revisa la conexión e inténtalo de nuevo.'
+            : 'Tu próxima visita aparecerá aquí.',
+        onTap: hasError
+            ? _loadAppointments
+            : () => Navigator.push(
                 context,
                 MaterialPageRoute<void>(builder: (_) => const CitasScreen()),
-              )
-            : _loadAppointments,
-        trailing: _appointmentsError == null
-            ? Icons.chevron_right
-            : Icons.refresh,
+              ),
+        trailing: hasError ? Icons.refresh : Icons.chevron_right,
       );
     }
 
-    final date = DateFormat(
-      'EEEE, d MMM · HH:mm',
-      'es',
-    ).format(appointment.start);
+    final start = appointment.start;
+    final date = start == null
+        ? 'Fecha por confirmar'
+        : DateFormat('EEEE, d MMM · HH:mm', 'es').format(start);
     return _ActionCard(
       icon: Icons.spa_outlined,
       title: appointment.serviceName,
-      subtitle: '$date hs\n✧  Confirmada',
+      subtitle: '$date hs\nEstado: ${appointment.estado}',
       onTap: _showAppointments,
       trailing: Icons.chevron_right,
     );
@@ -399,50 +419,6 @@ class _PerfilScreenState extends State<PerfilScreen> {
           TextButton(
             onPressed: _loadAppointments,
             child: const Text('Reintentar'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _preferencesCard() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 15),
-      decoration: BoxDecoration(
-        color: AppTheme.surface,
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: [
-          BoxShadow(
-            color: AppTheme.text.withValues(alpha: 0.04),
-            blurRadius: 14,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          _PreferenceRow(
-            icon: Icons.calendar_month_outlined,
-            title: 'Mis citas',
-            subtitle: 'Historial, estados y reagendamiento',
-            trailing: const Icon(Icons.chevron_right, color: AppTheme.text),
-            onTap: _showAppointments,
-          ),
-          const Divider(height: 1, indent: 58, color: AppTheme.softPink),
-          _PreferenceRow(
-            icon: Icons.favorite,
-            title: 'Favoritos',
-            subtitle: 'Sets guardados, tonos e inspiración',
-            trailing: const Icon(Icons.chevron_right, color: AppTheme.text),
-            onTap: () {},
-          ),
-          const Divider(height: 1, indent: 58, color: AppTheme.softPink),
-          _PreferenceRow(
-            icon: Icons.tune_rounded,
-            title: 'Ajustes',
-            subtitle: 'Perfil, notificaciones e idioma',
-            trailing: const Icon(Icons.chevron_right, color: AppTheme.text),
-            onTap: () {},
           ),
         ],
       ),
@@ -516,73 +492,53 @@ class _ActionCard extends StatelessWidget {
   }
 }
 
-class _PreferenceRow extends StatelessWidget {
-  const _PreferenceRow({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.trailing,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final Widget trailing;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(18),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        child: Row(
-          children: [
-            CircleAvatar(
-              backgroundColor: AppTheme.field,
-              foregroundColor: AppTheme.accent,
-              child: Icon(icon),
-            ),
-            const SizedBox(width: 13),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: AppTheme.titleStyle.copyWith(fontSize: 19),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(color: AppTheme.muted, fontSize: 11),
-                  ),
-                ],
-              ),
-            ),
-            trailing,
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _AppointmentHistorySheet extends StatelessWidget {
+class _AppointmentHistorySheet extends StatefulWidget {
   const _AppointmentHistorySheet({
     required this.appointments,
+    required this.onCancel,
     required this.onBook,
   });
 
   final List<Appointment> appointments;
+  final Future<Appointment?> Function(Appointment) onCancel;
   final VoidCallback onBook;
 
   @override
+  State<_AppointmentHistorySheet> createState() =>
+      _AppointmentHistorySheetState();
+}
+
+class _AppointmentHistorySheetState extends State<_AppointmentHistorySheet> {
+  late List<Appointment> _appointments;
+  final Set<int> _cancelling = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _appointments = List.of(widget.appointments);
+  }
+
+  Future<void> _cancel(Appointment appointment) async {
+    if (!_cancelling.add(appointment.id)) return;
+    setState(() {});
+    try {
+      final updated = await widget.onCancel(appointment);
+      if (updated != null && mounted) {
+        setState(() {
+          _appointments = _appointments
+              .map((item) => item.id == updated.id ? updated : item)
+              .toList();
+        });
+      }
+    } finally {
+      _cancelling.remove(appointment.id);
+      if (mounted) setState(() {});
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final sorted = appointments.toList()
-      ..sort((first, second) => second.start.compareTo(first.start));
+    final sorted = _appointments.reversed.toList();
 
     return SafeArea(
       child: Padding(
@@ -628,51 +584,103 @@ class _AppointmentHistorySheet extends StatelessWidget {
                   separatorBuilder: (_, _) => const SizedBox(height: 8),
                   itemBuilder: (context, index) {
                     final appointment = sorted[index];
+                    final canCancel =
+                        [
+                          'pendiente',
+                          'agendada',
+                        ].contains(appointment.estado) &&
+                        (appointment.start?.isAfter(DateTime.now()) ?? false);
+                    final cancelling = _cancelling.contains(appointment.id);
                     return Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
                         color: AppTheme.surface,
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      child: Row(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          const CircleAvatar(
-                            backgroundColor: AppTheme.softPink,
-                            foregroundColor: AppTheme.accent,
-                            child: Icon(Icons.spa_outlined),
+                          Row(
+                            children: [
+                              const CircleAvatar(
+                                backgroundColor: AppTheme.softPink,
+                                foregroundColor: AppTheme.accent,
+                                child: Icon(Icons.spa_outlined),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      appointment.serviceName,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      appointment.start == null
+                                          ? 'Fecha por confirmar'
+                                          : DateFormat(
+                                              'EEEE, d MMMM · HH:mm',
+                                              'es',
+                                            ).format(appointment.start!),
+                                      style: const TextStyle(
+                                        color: AppTheme.muted,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 3),
+                                    Text(
+                                      'Estado: ${appointment.estado}',
+                                      style: const TextStyle(
+                                        color: AppTheme.muted,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Icon(
+                                appointment.estado == 'cancelada'
+                                    ? Icons.cancel_outlined
+                                    : appointment.start?.isAfter(
+                                            DateTime.now(),
+                                          ) ??
+                                          false
+                                    ? Icons.check_circle_outline
+                                    : Icons.history,
+                                color: appointment.estado == 'cancelada'
+                                    ? AppTheme.muted
+                                    : AppTheme.accent,
+                                size: 19,
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  appointment.serviceName,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                  ),
+                          if (canCancel)
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: TextButton.icon(
+                                onPressed: cancelling
+                                    ? null
+                                    : () => _cancel(appointment),
+                                icon: cancelling
+                                    ? const SizedBox.square(
+                                        dimension: 16,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                    : const Icon(Icons.cancel_outlined),
+                                label: Text(
+                                  cancelling ? 'Cancelando…' : 'Cancelar cita',
                                 ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  DateFormat(
-                                    'EEEE, d MMMM · HH:mm',
-                                    'es',
-                                  ).format(appointment.start),
-                                  style: const TextStyle(
-                                    color: AppTheme.muted,
-                                    fontSize: 11,
-                                  ),
+                                style: TextButton.styleFrom(
+                                  foregroundColor: AppTheme.accent,
                                 ),
-                              ],
+                              ),
                             ),
-                          ),
-                          Icon(
-                            appointment.start.isAfter(DateTime.now())
-                                ? Icons.check_circle_outline
-                                : Icons.history,
-                            color: AppTheme.accent,
-                            size: 19,
-                          ),
                         ],
                       ),
                     );
@@ -683,13 +691,13 @@ class _AppointmentHistorySheet extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: onBook,
+                onPressed: widget.onBook,
                 icon: const Icon(Icons.arrow_forward_rounded),
                 label: const Text('Pide tu cita online'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.button,
                   foregroundColor: AppTheme.surface,
-                  minimumSize: const Size.fromHeight(52),
+                  minimumSize: const Size.fromHeight(54),
                   shape: const StadiumBorder(),
                 ),
               ),

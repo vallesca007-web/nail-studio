@@ -1,17 +1,15 @@
 import 'package:flutter/material.dart';
 
+import '../navigation/tabs.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_header.dart';
 import '../widgets/bottom_nav_bar.dart';
-import 'citas_screen.dart';
-import 'contacto_screen.dart';
-import 'home_screen.dart';
 import 'perfil_screen.dart';
 
 class ServiciosScreen extends StatelessWidget {
   const ServiciosScreen({super.key});
 
-  final List<(String, String, String, String)> _services = const [
+  static const List<(String, String, String, String)> _services = [
     (
       'Manicura',
       'Preparación precisa de cutícula y acabado pulido.',
@@ -37,17 +35,6 @@ class ServiciosScreen extends StatelessWidget {
       'https://images.unsplash.com/photo-1519014816548-bf5fe059798b?auto=format&fit=crop&w=900&q=80',
     ),
   ];
-
-  void _navigate(BuildContext context, int index) {
-    if (index == 1) return;
-    final page = switch (index) {
-      0 => const HomeScreen(),
-      2 => const CitasScreen(),
-      3 => PerfilScreen(),
-      _ => const ContactoScreen(),
-    };
-    Navigator.push(context, MaterialPageRoute<void>(builder: (_) => page));
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -161,7 +148,7 @@ class ServiciosScreen extends StatelessWidget {
       ),
       bottomNavigationBar: BottomNavBar(
         selectedIndex: 1,
-        onTap: (index) => _navigate(context, index),
+        onTap: (index) => openTab(context, index),
       ),
     );
   }

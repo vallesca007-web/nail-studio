@@ -6,7 +6,14 @@
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
     "test": "node --test",
-    "hash-password": "node scripts/hash-password.js"
+    "hash-password": "node scripts/hash-password.js",
+    "env:init": "node scripts/env-init.js",
+    "db:setup": "node scripts/run-sql.js setup-local",
+    "db:schema": "node scripts/run-sql.js schema",
+    "db:seed": "node scripts/run-sql.js seed",
+    "db:upgrade": "node scripts/run-sql.js upgrade",
+    "db:reset": "node scripts/run-sql.js reset",
+    "db:check": "node scripts/db-check.js"
   },
   "engines": {
     "node": ">=20"
