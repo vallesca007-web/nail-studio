@@ -1,5 +1,5 @@
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter/foundation.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 import '../config/app_config.dart';
 import 'app_session.dart';
@@ -25,17 +25,20 @@ class GoogleSignInService {
   Future<void>? _initialization;
   GoogleSignInAccount? _account;
 
+  Future<void> _ensureInitialized() => _initialization ??=
+      _googleSignIn.initialize(
+        clientId: kIsWeb ? AppConfig.googleServerClientId : null,
+        serverClientId: AppConfig.googleServerClientId,
+      );
+
   Future<String> signInAndGetIdToken() async {
-    if (AppConfig.googleServerClientId.contains('YOUR_GOOGLE')) {
+    if (AppConfig.googleServerClientId.isEmpty) {
       throw const GoogleSignInServiceException(
         'Google OAuth no está configurado todavía. Falta agregar los Client IDs.',
       );
     }
     try {
-      await (_initialization ??= _googleSignIn.initialize(
-        clientId: kIsWeb ? AppConfig.googleServerClientId : null,
-        serverClientId: AppConfig.googleServerClientId,
-      ));
+      await _ensureInitialized();
       final account = await _googleSignIn.authenticate();
       final idToken = account.authentication.idToken;
       if (idToken == null || idToken.isEmpty) {
@@ -62,10 +65,7 @@ class GoogleSignInService {
 
   Future<void> signOut() async {
     if (_account != null) {
-      await (_initialization ??= _googleSignIn.initialize(
-        clientId: kIsWeb ? AppConfig.googleServerClientId : null,
-        serverClientId: AppConfig.googleServerClientId,
-      ));
+      await _ensureInitialized();
       await _googleSignIn.signOut();
     }
     _account = null;

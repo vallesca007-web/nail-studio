@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../navigation/tabs.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_drawer.dart';
 import '../widgets/app_header.dart';
@@ -7,22 +8,9 @@ import '../widgets/bottom_nav_bar.dart';
 import '../widgets/pill_button.dart';
 import 'citas_screen.dart';
 import 'perfil_screen.dart';
-import 'servicios_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
-
-  void _navigate(BuildContext context, int index) {
-    final page = switch (index) {
-      1 => ServiciosScreen(),
-      2 => const CitasScreen(),
-      3 => PerfilScreen(),
-      _ => const HomeScreen(),
-    };
-    if (index != 0) {
-      Navigator.push(context, MaterialPageRoute<void>(builder: (_) => page));
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -186,12 +174,13 @@ class HomeScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 14),
                   Row(
-                    children: gallery.map((item) {
+                    children: List.generate(gallery.length, (index) {
+                      final item = gallery[index];
                       return Expanded(
                         child: Padding(
                           padding: EdgeInsets.only(
-                            right: item == gallery.first ? 7 : 0,
-                            left: item == gallery.last ? 7 : 0,
+                            right: index == 0 ? 7 : 0,
+                            left: index == gallery.length - 1 ? 7 : 0,
                           ),
                           child: Container(
                             padding: const EdgeInsets.all(9),
@@ -240,7 +229,7 @@ class HomeScreen extends StatelessWidget {
                           ),
                         ),
                       );
-                    }).toList(),
+                    }),
                   ),
                   const SizedBox(height: 20),
                   Container(
@@ -266,7 +255,7 @@ class HomeScreen extends StatelessWidget {
       ),
       bottomNavigationBar: BottomNavBar(
         selectedIndex: 0,
-        onTap: (index) => _navigate(context, index),
+        onTap: (index) => openTab(context, index),
       ),
     );
   }

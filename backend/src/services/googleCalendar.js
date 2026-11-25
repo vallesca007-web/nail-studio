@@ -1,4 +1,5 @@
 const fs = require('node:fs');
+const path = require('node:path');
 const { google } = require('googleapis');
 
 const { localDayRange } = require('./dateTime');
@@ -8,6 +9,35 @@ const scopes = [
   'https://www.googleapis.com/auth/calendar.freebusy',
 ];
 let calendarApi;
+let warnedDisabled = false;
+
+function resolveLocalCredentialPath(file) {
+  if (path.isAbsolute(file)) return file;
+  if (file.startsWith('./backend/') || file.startsWith('backend/')) {
+    return path.resolve(__dirname, '../../..', file);
+  }
+  return path.resolve(process.cwd(), file);
+}
+
+function hasCredentials() {
+  if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) return true;
+  const file = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+  return Boolean(file) && fs.existsSync(resolveLocalCredentialPath(file));
+}
+
+// Google Calendar es opcional: sin calendario ni credenciales la agenda se
+// controla solo con MySQL, en lugar de bloquear toda la app.
+function isConfigured() {
+  if (process.env.GOOGLE_CALENDAR_ID?.trim() && hasCredentials()) return true;
+  if (!warnedDisabled) {
+    console.warn(
+      'Google Calendar desactivado (falta GOOGLE_CALENDAR_ID o el archivo de credenciales). ' +
+        'La agenda se controla solo con MySQL.',
+    );
+    warnedDisabled = true;
+  }
+  return false;
+}
 
 function configuredCalendarId() {
   const calendarId = process.env.GOOGLE_CALENDAR_ID?.trim();
@@ -30,10 +60,11 @@ function getCalendarApi() {
     }
     auth = new google.auth.GoogleAuth({ credentials, scopes });
   } else if (file) {
-    if (!fs.existsSync(file)) {
+    const credentialPath = resolveLocalCredentialPath(file);
+    if (!fs.existsSync(credentialPath)) {
       throw new Error('No se encontró el archivo GOOGLE_APPLICATION_CREDENTIALS.');
     }
-    auth = new google.auth.GoogleAuth({ keyFile: file, scopes });
+    auth = new google.auth.GoogleAuth({ keyFile: credentialPath, scopes });
   } else {
     throw new Error(
       'Configura GOOGLE_SERVICE_ACCOUNT_JSON o GOOGLE_APPLICATION_CREDENTIALS.',
@@ -45,6 +76,7 @@ function getCalendarApi() {
 }
 
 async function getBusyRanges(date) {
+  if (!isConfigured()) return [];
   const timeZone = process.env.TIMEZONE || 'America/Mexico_City';
   const range = localDayRange(date, timeZone);
   if (!range) throw new Error('La fecha o la zona horaria no son válidas.');
@@ -72,6 +104,7 @@ async function createEvent({
   start,
   end,
 }) {
+  if (!isConfigured()) return { eventId: null, eventUrl: null };
   const timeZone = process.env.TIMEZONE || 'America/Mexico_City';
   const response = await getCalendarApi().events.insert({
     calendarId: configuredCalendarId(),
@@ -94,6 +127,7 @@ async function createEvent({
 }
 
 async function deleteEvent(eventId) {
+  if (!eventId || !isConfigured()) return;
   await getCalendarApi().events.delete({
     calendarId: configuredCalendarId(),
     eventId,
@@ -102,6 +136,7 @@ async function deleteEvent(eventId) {
 }
 
 async function updateEventTitle(eventId, title) {
+  if (!eventId || !isConfigured()) return;
   await getCalendarApi().events.patch({
     calendarId: configuredCalendarId(),
     eventId,

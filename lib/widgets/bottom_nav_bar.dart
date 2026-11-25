@@ -40,32 +40,36 @@ class BottomNavBar extends StatelessWidget {
           children: List.generate(_items.length, (index) {
             final item = _items[index];
             final active = selectedIndex == index;
+            final color = active ? AppTheme.accent : AppTheme.muted;
             return InkWell(
-              onTap: () => onTap(index),
+              // Tocar la pestaña activa no debe reconstruir la pantalla.
+              onTap: active ? null : () => onTap(index),
               borderRadius: BorderRadius.circular(20),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      item.$1,
-                      size: 21,
-                      color: active ? AppTheme.accent : AppTheme.muted,
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      item.$2,
-                      style: TextStyle(
-                        color: active ? AppTheme.accent : AppTheme.muted,
-                        fontSize: 10,
-                        fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minWidth: 64, minHeight: 48),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(item.$1, size: 21, color: color),
+                      const SizedBox(height: 3),
+                      Text(
+                        item.$2,
+                        style: TextStyle(
+                          color: color,
+                          fontSize: 10,
+                          fontWeight: active
+                              ? FontWeight.w700
+                              : FontWeight.w500,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             );

@@ -46,6 +46,7 @@ input, select { width:100%; border:1px solid var(--border); border-radius:14px; 
 .inline-form,.service-form { background:var(--white);border-radius:18px;padding:14px;margin:12px 0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px; }
 .service-form select,.inline-form input { width:100%; }
 .inline-form button,.service-form button { width:max-content; }
+.card-actions { display:flex;gap:8px;flex-wrap:wrap;margin-top:12px; }
 .price-line { display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px; }
 .price-line input { width:120px; }
 @media(max-width:760px){
