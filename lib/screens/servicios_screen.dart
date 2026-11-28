@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../models/studio_service.dart';
 import '../navigation/tabs.dart';
 import '../services/service_catalog_service.dart';
+import '../services/user_preferences_store.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_header.dart';
 import '../widgets/bottom_nav_bar.dart';
@@ -24,14 +25,56 @@ class ServiciosScreen extends StatefulWidget {
 class _ServiciosScreenState extends State<ServiciosScreen> {
   late String _category;
   List<StudioService> _services = [];
+  Set<int> _favoriteServiceIds = {};
+  final Set<int> _savingFavoriteIds = {};
   bool _loading = true;
   String? _error;
+  String? _favoriteError;
 
   @override
   void initState() {
     super.initState();
     _category = widget.categoria ?? 'manicura';
     _loadServices();
+    _loadFavoriteIds();
+  }
+
+  Future<void> _loadFavoriteIds() async {
+    try {
+      final favorites = await UserPreferencesStore.instance
+          .loadFavoriteServiceIds();
+      if (!mounted) return;
+      setState(() => _favoriteServiceIds = favorites);
+    } on Exception catch (error) {
+      if (!mounted) return;
+      setState(() => _favoriteError = error.toString());
+    }
+  }
+
+  Future<void> _toggleFavorite(StudioService service) async {
+    if (_savingFavoriteIds.isNotEmpty ||
+        !_savingFavoriteIds.add(service.id)) {
+      return;
+    }
+    final next = Set<int>.from(_favoriteServiceIds);
+    if (!next.add(service.id)) next.remove(service.id);
+    setState(() {});
+    try {
+      await UserPreferencesStore.instance.saveFavoriteServiceIds(next);
+      if (!mounted) return;
+      setState(() {
+        _favoriteServiceIds = next;
+        _favoriteError = null;
+      });
+    } on Exception catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No se pudo guardar el favorito: $error')),
+      );
+    } finally {
+      _savingFavoriteIds.remove(service.id);
+      if (mounted) setState(() {});
+    }
   }
 
   Future<void> _loadServices() async {
@@ -82,7 +125,11 @@ class _ServiciosScreenState extends State<ServiciosScreen> {
         title: entry.key,
         services: entry.value,
         firstNumber: start,
+        favoriteServiceIds: _favoriteServiceIds,
+        savingFavoriteIds: _savingFavoriteIds,
+        favoriteSaveInProgress: _savingFavoriteIds.isNotEmpty,
         onReserve: _reserve,
+        onFavoriteToggle: _toggleFavorite,
       );
     }).toList();
 
@@ -120,6 +167,17 @@ class _ServiciosScreenState extends State<ServiciosScreen> {
                     ),
                   ],
                   const SizedBox(height: 18),
+                  if (_favoriteError != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Text(
+                        'No se pudieron cargar los favoritos: $_favoriteError',
+                        style: const TextStyle(
+                          color: AppTheme.accent,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
                   if (_loading)
                     const Padding(
                       padding: EdgeInsets.symmetric(vertical: 48),
@@ -246,13 +304,21 @@ class _ServiceGroupCard extends StatelessWidget {
     required this.title,
     required this.services,
     required this.firstNumber,
+    required this.favoriteServiceIds,
+    required this.savingFavoriteIds,
+    required this.favoriteSaveInProgress,
     required this.onReserve,
+    required this.onFavoriteToggle,
   });
 
   final String title;
   final List<StudioService> services;
   final int firstNumber;
+  final Set<int> favoriteServiceIds;
+  final Set<int> savingFavoriteIds;
+  final bool favoriteSaveInProgress;
   final ValueChanged<StudioService> onReserve;
+  final ValueChanged<StudioService> onFavoriteToggle;
 
   @override
   Widget build(BuildContext context) {
@@ -309,7 +375,11 @@ class _ServiceGroupCard extends StatelessWidget {
             _ServiceRow(
               service: services[index],
               number: firstNumber + index,
+              isFavorite: favoriteServiceIds.contains(services[index].id),
+              savingFavorite: savingFavoriteIds.contains(services[index].id),
+              favoriteSaveInProgress: favoriteSaveInProgress,
               onReserve: () => onReserve(services[index]),
+              onFavoriteTap: () => onFavoriteToggle(services[index]),
             ),
             if (index < services.length - 1)
               Divider(height: 1, color: AppTheme.text.withValues(alpha: 0.09)),
@@ -324,12 +394,20 @@ class _ServiceRow extends StatelessWidget {
   const _ServiceRow({
     required this.service,
     required this.number,
+    required this.isFavorite,
+    required this.savingFavorite,
+    required this.favoriteSaveInProgress,
     required this.onReserve,
+    required this.onFavoriteTap,
   });
 
   final StudioService service;
   final int number;
+  final bool isFavorite;
+  final bool savingFavorite;
+  final bool favoriteSaveInProgress;
   final VoidCallback onReserve;
+  final VoidCallback onFavoriteTap;
 
   @override
   Widget build(BuildContext context) {
@@ -381,6 +459,26 @@ class _ServiceRow extends StatelessWidget {
                     ],
                   ],
                 ),
+              ),
+              IconButton(
+                tooltip: isFavorite
+                    ? 'Quitar de favoritos'
+                    : 'Agregar a favoritos',
+                onPressed: favoriteSaveInProgress ? null : onFavoriteTap,
+                visualDensity: VisualDensity.compact,
+                icon: savingFavorite
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppTheme.accent,
+                        ),
+                      )
+                    : Icon(
+                        isFavorite ? Icons.favorite : Icons.favorite_border,
+                        color: AppTheme.accent,
+                      ),
               ),
             ],
           ),

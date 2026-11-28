@@ -9,6 +9,8 @@ import '../services/google_sign_in_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_header.dart';
 import '../widgets/bottom_nav_bar.dart';
+import 'ajustes_screen.dart';
+import 'favoritos_screen.dart';
 import 'login_screen.dart';
 import 'servicios_screen.dart';
 
@@ -76,6 +78,21 @@ class _PerfilScreenState extends State<PerfilScreen> {
         },
       ),
     );
+  }
+
+  Future<void> _openFavorites() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute<void>(builder: (_) => const FavoritosScreen()),
+    );
+  }
+
+  Future<void> _openSettings() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute<void>(builder: (_) => const AjustesScreen()),
+    );
+    if (mounted) setState(() {});
   }
 
   Future<void> _signOut() async {
@@ -147,6 +164,27 @@ class _PerfilScreenState extends State<PerfilScreen> {
                         backgroundColor: AppTheme.softPink,
                       ),
                     ),
+                  const SizedBox(height: 24),
+                  Text(
+                    'PREFERENCIAS Y CUIDADO',
+                    style: AppTheme.labelStyle.copyWith(
+                      color: AppTheme.muted,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  _ProfileActionTile(
+                    icon: Icons.favorite_border,
+                    title: 'Favoritos',
+                    subtitle: 'Tus servicios guardados',
+                    onTap: _openFavorites,
+                  ),
+                  const SizedBox(height: 8),
+                  _ProfileActionTile(
+                    icon: Icons.tune_rounded,
+                    title: 'Ajustes',
+                    subtitle: 'Perfil y preferencias',
+                    onTap: _openSettings,
+                  ),
                   const SizedBox(height: 24),
                   OutlinedButton.icon(
                     onPressed: _signingOut ? null : _signOut,
@@ -403,6 +441,70 @@ class _ActionCard extends StatelessWidget {
               ),
               const SizedBox(width: 5),
               Icon(trailing, color: AppTheme.accent),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ProfileActionTile extends StatelessWidget {
+  const _ProfileActionTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppTheme.surface,
+      borderRadius: BorderRadius.circular(22),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(22),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 21,
+                backgroundColor: AppTheme.field,
+                foregroundColor: AppTheme.accent,
+                child: Icon(icon, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: AppTheme.titleStyle.copyWith(fontSize: 18),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(
+                        color: AppTheme.muted,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: AppTheme.muted,
+                size: 21,
+              ),
             ],
           ),
         ),
