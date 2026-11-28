@@ -38,6 +38,12 @@ class CitasScreen extends StatefulWidget {
 }
 
 class _CitasScreenState extends State<CitasScreen> {
+<<<<<<< HEAD
+=======
+  static const _serviceName = 'Manicura y Esmaltado';
+  static const _serviceDuration = AppConfig.signatureServiceDuration;
+
+>>>>>>> origin/main
   DateTime _selectedDay = _initialBookingDay();
   DateTime? _selectedSlot;
   List<DateTime> _availableSlots = [];
@@ -370,7 +376,11 @@ class _CitasScreenState extends State<CitasScreen> {
         ),
       ),
       bottomNavigationBar: BottomNavBar(
+<<<<<<< HEAD
         selectedIndex: 1,
+=======
+        selectedIndex: 2,
+>>>>>>> origin/main
         onTap: (index) => openTab(context, index),
       ),
     );

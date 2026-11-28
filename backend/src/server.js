@@ -49,6 +49,9 @@ class ApiError extends Error {
   }
 }
 
+const asyncHandler = (handler) => (request, response, next) =>
+  Promise.resolve(handler(request, response, next)).catch(next);
+
 function getBusinessDays() {
   const value = process.env.BUSINESS_DAYS || '1,2,3,4,5,6';
   const days = value.split(',').map((item) => Number(item.trim()));
@@ -365,11 +368,51 @@ app.get('/api/appointments/mine', requireUser, asyncHandler(async (request, resp
     })),
   );
 }));
+<<<<<<< HEAD
 
 app.use('/api/admin', require('./admin/routes')(pool));
 app.get('/admin/logo.png', (request, response) => {
   response.sendFile(path.resolve(__dirname, '../../assets/images/logo.png'));
 });
+=======
+
+app.post('/api/appointments/:id/cancel', requireUser, asyncHandler(async (request, response) => {
+  const appointmentId = Number(request.params.id);
+  if (!Number.isInteger(appointmentId) || appointmentId <= 0) {
+    throw new ApiError(400, 'La cita no es válida.');
+  }
+  const [rows] = await pool.execute(
+    'SELECT id, estado, google_event_id FROM citas WHERE id = ? AND usuario_id = ?',
+    [appointmentId, request.user.userId],
+  );
+  if (!rows.length) throw new ApiError(404, 'Cita inexistente.');
+  if (!['pendiente', 'agendada'].includes(rows[0].estado)) {
+    throw new ApiError(409, `La cita ya está ${rows[0].estado}.`);
+  }
+
+  const [result] = await pool.execute(
+    `UPDATE citas SET estado = 'cancelada'
+     WHERE id = ? AND usuario_id = ? AND estado IN ('pendiente', 'agendada')`,
+    [appointmentId, request.user.userId],
+  );
+  if (!result.affectedRows) throw new ApiError(409, 'La cita ya no se puede cancelar.');
+
+  if (rows[0].google_event_id) {
+    try {
+      await googleCalendar.deleteEvent(rows[0].google_event_id);
+      await pool.execute(
+        'UPDATE citas SET google_event_id = NULL WHERE id = ? AND usuario_id = ?',
+        [appointmentId, request.user.userId],
+      );
+    } catch (error) {
+      console.error('No se pudo borrar el evento de Google Calendar:', error.message);
+    }
+  }
+  response.json({ ok: true, estado: 'cancelada' });
+}));
+
+app.use('/api/admin', require('./admin/routes')(pool));
+>>>>>>> origin/main
 app.use('/admin', express.static(path.join(__dirname, 'public')));
 app.get('/admin', (request, response) => response.sendFile(path.join(__dirname, 'public/index.html')));
 

@@ -10,7 +10,12 @@ const files = {
   'setup-local': '../database/setup-local.sql',
   schema: '../database/schema.sql',
   seed: '../database/seed.sql',
+<<<<<<< HEAD
   promotions: '../database/promotions.sql',
+=======
+  upgrade: '../database/upgrade.sql',
+  ensure: '../database/ensure.sql',
+>>>>>>> origin/main
 };
 
 const type = process.argv[2];
@@ -61,6 +66,7 @@ const expectedColumns = {
   citas: ['manicurista_id', 'fecha', 'hora', 'hora_fin', 'precio'],
 };
 
+<<<<<<< HEAD
 async function ensureServiceColumns() {
   const [rows] = await connection.query(
     `SELECT COLUMN_NAME FROM information_schema.COLUMNS
@@ -91,6 +97,8 @@ async function ensureServiceColumns() {
   }
 }
 
+=======
+>>>>>>> origin/main
 async function warnIfLegacy() {
   for (const [table, expected] of Object.entries(expectedColumns)) {
     const [rows] = await connection.query(
@@ -110,12 +118,18 @@ async function warnIfLegacy() {
 
 async function main() {
   if (!files[type] && type !== 'reset') {
+<<<<<<< HEAD
     throw new Error('Uso: npm run db:setup | db:schema | db:seed | db:promotions | db:reset');
   }
   const database = quotedDatabase();
   if (dbName !== 'anne_nail_studio') {
     throw new Error('DB_NAME debe ser anne_nail_studio para evitar crear otra base.');
   }
+=======
+    throw new Error('Uso: npm run db:setup | db:schema | db:seed | db:upgrade | db:reset');
+  }
+  const database = quotedDatabase();
+>>>>>>> origin/main
 
   let sql = null;
   if (type !== 'reset') {
@@ -161,10 +175,18 @@ async function main() {
   } else {
     await connection.query(sql);
   }
+<<<<<<< HEAD
   if (type === 'schema') {
     await ensureServiceColumns();
     await warnIfLegacy();
   }
+=======
+  // Los ajustes de ensure.sql son idempotentes y dejan al dia una base creada
+  // con una version anterior del esquema.
+  if (type === 'schema' || type === 'reset') await connection.query(readSql('ensure'));
+
+  if (type === 'schema') await warnIfLegacy();
+>>>>>>> origin/main
 
   await connection.end();
   console.log(`Ejecutado en la base ${dbName}.`);

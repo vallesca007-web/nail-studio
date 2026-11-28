@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 INSERT INTO servicios
   (nombre, costo, duracion_min, activo, categoria, grupo, descripcion, orden)
 SELECT 'Manicura', 390.00, 60, TRUE, 'manicura', 'Manicura',
@@ -70,11 +71,38 @@ UPDATE servicios SET
   orden = 5
 WHERE nombre = 'Poligel';
 
+=======
+INSERT INTO servicios (nombre, costo, duracion_min, activo)
+SELECT 'Manicura', 35.00, 45, TRUE
+WHERE NOT EXISTS (SELECT 1 FROM servicios WHERE nombre = 'Manicura');
+
+INSERT INTO servicios (nombre, costo, duracion_min, activo)
+SELECT 'Esmaltado permanente', 45.00, 60, TRUE
+WHERE NOT EXISTS (SELECT 1 FROM servicios WHERE nombre = 'Esmaltado permanente');
+
+INSERT INTO servicios (nombre, costo, duracion_min, activo)
+SELECT 'Uñas esculturales', 55.00, 90, TRUE
+WHERE NOT EXISTS (SELECT 1 FROM servicios WHERE nombre = 'Uñas esculturales');
+
+INSERT INTO servicios (nombre, costo, duracion_min, activo)
+SELECT 'Pedicura', 40.00, 60, TRUE
+WHERE NOT EXISTS (SELECT 1 FROM servicios WHERE nombre = 'Pedicura');
+
+INSERT INTO servicios (nombre, costo, duracion_min, activo)
+SELECT 'Softgel', 50.00, 75, TRUE
+WHERE NOT EXISTS (SELECT 1 FROM servicios WHERE nombre = 'Softgel');
+
+INSERT INTO servicios (nombre, costo, duracion_min, activo)
+SELECT 'Poligel', 52.00, 75, TRUE
+WHERE NOT EXISTS (SELECT 1 FROM servicios WHERE nombre = 'Poligel');
+
+>>>>>>> origin/main
 INSERT INTO manicuristas (nombre, activo)
 SELECT 'Manicurista de prueba', TRUE
 WHERE NOT EXISTS (
   SELECT 1 FROM manicuristas WHERE nombre = 'Manicurista de prueba'
 );
+<<<<<<< HEAD
 
 INSERT INTO promociones (titulo, etiqueta, descripcion, fecha_fin, activo)
 SELECT 'Bienvenida al estudio', '10% OFF',
@@ -83,3 +111,5 @@ SELECT 'Bienvenida al estudio', '10% OFF',
 WHERE NOT EXISTS (
   SELECT 1 FROM promociones WHERE titulo = 'Bienvenida al estudio'
 );
+=======
+>>>>>>> origin/main

@@ -70,6 +70,57 @@ test('una cita del 2026-11-24 a las 10:00 se devuelve con esa fecha y hora', asy
   }
 });
 
+<<<<<<< HEAD
+=======
+test('una clienta solo puede cancelar su propia cita activa', async () => {
+  const { server, base } = await startServer();
+  const suffix = Date.now();
+  let ownerId;
+  let otherId;
+  let appointmentId;
+  try {
+    const owner = await registerClient(base, `cancelar-${suffix}@example.com`);
+    const other = await registerClient(base, `otra-${suffix}@example.com`);
+    ownerId = owner.id;
+    otherId = other.id;
+    const [result] = await pool.execute(
+      `INSERT INTO citas (servicio_id, usuario_id, fecha, hora, hora_fin, precio, telefono, estado)
+       VALUES (1, ?, '2030-01-02', '10:00:00', '11:00:00', 45, ?, 'pendiente')`,
+      [ownerId, phone],
+    );
+    appointmentId = result.insertId;
+
+    let response = await fetch(`${base}/api/appointments/${appointmentId}/cancel`, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${other.token}` },
+    });
+    assert.equal(response.status, 404);
+    const [unchanged] = await pool.execute(
+      'SELECT estado FROM citas WHERE id = ?',
+      [appointmentId],
+    );
+    assert.equal(unchanged[0].estado, 'pendiente');
+
+    response = await fetch(`${base}/api/appointments/${appointmentId}/cancel`, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${owner.token}` },
+    });
+    assert.equal(response.status, 200);
+    assert.equal((await response.json()).estado, 'cancelada');
+
+    response = await fetch(`${base}/api/appointments/${appointmentId}/cancel`, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${owner.token}` },
+    });
+    assert.equal(response.status, 409);
+  } finally {
+    await cleanup(ownerId);
+    await cleanup(otherId);
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+>>>>>>> origin/main
 test('la reserva responde fecha y hora en el mismo formato que guarda', async () => {
   const { server, base } = await startServer();
   const email = `reserva-${Date.now()}@example.com`;

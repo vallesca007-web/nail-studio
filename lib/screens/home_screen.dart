@@ -7,7 +7,6 @@ import '../widgets/app_header.dart';
 import '../widgets/bottom_nav_bar.dart';
 import '../widgets/pill_button.dart';
 import 'perfil_screen.dart';
-import 'servicios_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -44,7 +43,73 @@ class HomeScreen extends StatelessWidget {
                   const SizedBox(height: 14),
                   _buildHero(context),
                   const SizedBox(height: 26),
+<<<<<<< HEAD
                   _buildServicesSection(context),
+=======
+                  Text(
+                    'Fotos de Estudio',
+                    style: AppTheme.titleStyle.copyWith(fontSize: 24),
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: List.generate(gallery.length, (index) {
+                      final item = gallery[index];
+                      return Expanded(
+                        child: Padding(
+                          padding: EdgeInsets.only(
+                            right: index == 0 ? 7 : 0,
+                            left: index == gallery.length - 1 ? 7 : 0,
+                          ),
+                          child: Container(
+                            padding: const EdgeInsets.all(9),
+                            decoration: BoxDecoration(
+                              color: AppTheme.surface,
+                              borderRadius: BorderRadius.circular(24),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppTheme.text.withValues(alpha: 0.04),
+                                  blurRadius: 15,
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(18),
+                                  child: AspectRatio(
+                                    aspectRatio: 0.92,
+                                    child: Image.network(
+                                      item.$2,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, _, _) =>
+                                          const ColoredBox(
+                                            color: AppTheme.softPink,
+                                            child: Icon(
+                                              Icons.spa_outlined,
+                                              color: AppTheme.accent,
+                                            ),
+                                          ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                Text(
+                                  item.$1,
+                                  maxLines: 2,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                  ),
+>>>>>>> origin/main
                   const SizedBox(height: 20),
                   Container(
                     padding: const EdgeInsets.all(16),
@@ -70,6 +135,7 @@ class HomeScreen extends StatelessWidget {
       bottomNavigationBar: BottomNavBar(
         selectedIndex: 0,
         onTap: (index) => openTab(context, index),
+<<<<<<< HEAD
       ),
     );
   }
@@ -330,6 +396,8 @@ class HomeScreen extends StatelessWidget {
       context,
       MaterialPageRoute<void>(
         builder: (_) => ServiciosScreen(categoria: category),
+=======
+>>>>>>> origin/main
       ),
     );
   }
