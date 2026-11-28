@@ -75,3 +75,11 @@ SELECT 'Manicurista de prueba', TRUE
 WHERE NOT EXISTS (
   SELECT 1 FROM manicuristas WHERE nombre = 'Manicurista de prueba'
 );
+
+INSERT INTO promociones (titulo, etiqueta, descripcion, fecha_fin, activo)
+SELECT 'Bienvenida al estudio', '10% OFF',
+       'Recibe 10% de descuento en tu primera visita. Muestra esta promoción al reservar.',
+       NULL, TRUE
+WHERE NOT EXISTS (
+  SELECT 1 FROM promociones WHERE titulo = 'Bienvenida al estudio'
+);

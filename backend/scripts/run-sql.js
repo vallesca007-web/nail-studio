@@ -10,6 +10,7 @@ const files = {
   'setup-local': '../database/setup-local.sql',
   schema: '../database/schema.sql',
   seed: '../database/seed.sql',
+  promotions: '../database/promotions.sql',
 };
 
 const type = process.argv[2];
@@ -109,7 +110,7 @@ async function warnIfLegacy() {
 
 async function main() {
   if (!files[type] && type !== 'reset') {
-    throw new Error('Uso: npm run db:setup | db:schema | db:seed | db:reset');
+    throw new Error('Uso: npm run db:setup | db:schema | db:seed | db:promotions | db:reset');
   }
   const database = quotedDatabase();
   if (dbName !== 'anne_nail_studio') {

@@ -72,12 +72,18 @@ document.querySelectorAll('.nav-button').forEach((button) => {
     button.classList.add('active');
     document.querySelectorAll('.section').forEach((section) => section.classList.add('hidden'));
     document.querySelector(`#${button.dataset.section}Section`).classList.remove('hidden');
+    const sectionTitles = {
+      appointments: 'Citas',
+      specialists: 'Manicuristas',
+      services: 'Servicios',
+      promotions: 'Promociones',
+    };
     document.querySelector('#sectionTitle').textContent =
-      button.dataset.section === 'appointments' ? 'Citas' :
-      button.dataset.section === 'specialists' ? 'Manicuristas' : 'Servicios';
+      sectionTitles[button.dataset.section];
     if (button.dataset.section === 'appointments') loadAppointments();
     if (button.dataset.section === 'specialists') loadSpecialists();
     if (button.dataset.section === 'services') loadServices();
+    if (button.dataset.section === 'promotions') loadPromotions();
   });
 });
 
@@ -352,5 +358,108 @@ async function previewPrices(apply = false) {
 
 document.querySelector('#previewAdjustButton').addEventListener('click', () => previewPrices(false));
 document.querySelector('#applyAdjustButton').addEventListener('click', () => previewPrices(true));
+
+document.querySelector('#addPromotionButton').addEventListener('click', () => {
+  const form = document.querySelector('#promotionForm');
+  form.reset();
+  form.classList.toggle('hidden');
+});
+
+function promotionPayload(form) {
+  const values = new FormData(form);
+  return {
+    titulo: values.get('title'),
+    etiqueta: values.get('badge'),
+    descripcion: values.get('description'),
+    fecha_fin: values.get('endDate') || null,
+    activo: values.get('active') === 'on',
+  };
+}
+
+document.querySelector('#promotionForm').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  try {
+    await api('/api/admin/promotions', {
+      method: 'POST',
+      body: JSON.stringify(promotionPayload(form)),
+    });
+    form.reset();
+    form.classList.add('hidden');
+    message('Promoción agregada.');
+    loadPromotions();
+  } catch (error) { message(error.message, true); }
+});
+
+async function loadPromotions() {
+  setLoading(true);
+  try {
+    const rows = await api('/api/admin/promotions');
+    const list = document.querySelector('#promotionsList');
+    list.innerHTML = rows.length ? rows.map((row) => {
+      const endDate = row.fecha_fin ? String(row.fecha_fin).slice(0, 10) : '';
+      return `<article class="card">
+        <div class="card-row">
+          <div>
+            <h3>${escapeHtml(row.titulo)}</h3>
+            <div class="meta">${escapeHtml(row.etiqueta || 'Promoción')} · ${row.activo ? 'Activa' : 'Pausada'}</div>
+            <div class="meta">${escapeHtml(row.descripcion)}</div>
+            <div class="meta">${endDate ? `Válida hasta ${escapeHtml(endDate)}` : 'Sin fecha de vencimiento'}</div>
+          </div>
+          <button class="secondary delete-promotion" data-id="${escapeHtml(row.id)}" data-title="${escapeHtml(row.titulo)}">Eliminar</button>
+        </div>
+        <details class="service-edit">
+          <summary>Editar promoción</summary>
+          <form class="service-form promotion-edit-form" data-id="${escapeHtml(row.id)}">
+            <input name="title" value="${escapeHtml(row.titulo)}" maxlength="120" required>
+            <input name="badge" value="${escapeHtml(row.etiqueta || '')}" maxlength="40" placeholder="Etiqueta">
+            <textarea name="description" maxlength="500" required>${escapeHtml(row.descripcion)}</textarea>
+            <label class="checkbox-field">
+              <span>Válida hasta</span>
+              <input name="endDate" type="date" value="${escapeHtml(endDate)}">
+            </label>
+            <label class="checkbox-field">
+              <input name="active" type="checkbox" ${row.activo ? 'checked' : ''}>
+              <span>Promoción activa</span>
+            </label>
+            <button class="primary" type="submit">Guardar cambios</button>
+          </form>
+        </details>
+      </article>`;
+    }).join('') : '<div class="card">No hay promociones. Agrega la primera desde el botón superior.</div>';
+
+    document.querySelectorAll('.promotion-edit-form').forEach((form) => {
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        try {
+          await api(`/api/admin/promotions/${encodeURIComponent(form.dataset.id)}`, {
+            method: 'PUT',
+            body: JSON.stringify(promotionPayload(form)),
+          });
+          message('Promoción actualizada.');
+          loadPromotions();
+        } catch (error) { message(error.message, true); }
+      });
+    });
+
+    document.querySelectorAll('.delete-promotion').forEach((button) => {
+      button.addEventListener('click', async () => {
+        if (!confirm(`¿Eliminar la promoción "${button.dataset.title}"?`)) return;
+        try {
+          await api(`/api/admin/promotions/${encodeURIComponent(button.dataset.id)}`, {
+            method: 'DELETE',
+            body: '{}',
+          });
+          message('Promoción eliminada.');
+          loadPromotions();
+        } catch (error) { message(error.message, true); }
+      });
+    });
+  } catch (error) {
+    message(error.message, true);
+  } finally {
+    setLoading(false);
+  }
+}
 
 api('/api/admin/me').then(showAdmin).catch(showLogin);
