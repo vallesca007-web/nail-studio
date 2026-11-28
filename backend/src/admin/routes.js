@@ -95,6 +95,7 @@ module.exports = function createAdminRoutes(pool) {
     response.json({ ok: true, user: request.admin.user });
   });
 
+<<<<<<< HEAD
   router.get('/promotions', requireAdmin, async (request, response, next) => {
     try {
       const [rows] = await pool.execute(
@@ -166,6 +167,12 @@ module.exports = function createAdminRoutes(pool) {
         `SELECT id, nombre, costo, duracion_min, activo, categoria, grupo,
                 descripcion, orden
          FROM servicios ORDER BY categoria, grupo, orden, nombre`,
+=======
+  router.get('/services', requireAdmin, async (request, response, next) => {
+    try {
+      const [rows] = await pool.execute(
+        'SELECT id, nombre, costo, duracion_min, activo FROM servicios ORDER BY nombre',
+>>>>>>> origin/main
       );
       response.json(rows);
     } catch (error) {
@@ -175,6 +182,7 @@ module.exports = function createAdminRoutes(pool) {
 
   router.post('/services', requireAdmin, async (request, response, next) => {
     try {
+<<<<<<< HEAD
       const nombre = typeof request.body?.nombre === 'string' ? request.body.nombre.trim() : '';
       const costo = Number(request.body?.costo);
       const duracion = Number(request.body?.duracion_min);
@@ -199,6 +207,19 @@ module.exports = function createAdminRoutes(pool) {
         id: result.insertId, nombre, costo, duracion_min: duracion, activo: true,
         categoria, grupo, descripcion, orden: 0,
       });
+=======
+      const nombre = String(request.body?.nombre || '').trim();
+      const costo = Number(request.body?.costo);
+      const duracion = Number(request.body?.duracion_min);
+      if (!nombre || nombre.length > 100) return response.status(400).json({ error: 'El nombre no es válido.' });
+      if (!Number.isFinite(costo) || costo <= 0) return response.status(400).json({ error: 'El costo debe ser mayor que cero.' });
+      if (!Number.isInteger(duracion) || duracion <= 0) return response.status(400).json({ error: 'La duración no es válida.' });
+      const [result] = await pool.execute(
+        'INSERT INTO servicios (nombre, costo, duracion_min, activo) VALUES (?, ?, ?, TRUE)',
+        [nombre, costo, duracion],
+      );
+      response.status(201).json({ id: result.insertId, nombre, costo, duracion_min: duracion, activo: true });
+>>>>>>> origin/main
     } catch (error) {
       next(error);
     }
@@ -210,6 +231,7 @@ module.exports = function createAdminRoutes(pool) {
       if (!rows.length) return response.status(404).json({ error: 'Servicio inexistente.' });
       const costo = request.body?.costo === undefined ? rows[0].costo : Number(request.body.costo);
       const duracion = request.body?.duracion_min === undefined ? rows[0].duracion_min : Number(request.body.duracion_min);
+<<<<<<< HEAD
       const nombre = request.body?.nombre === undefined
         ? rows[0].nombre
         : typeof request.body.nombre === 'string' ? request.body.nombre.trim() : '';
@@ -239,6 +261,15 @@ module.exports = function createAdminRoutes(pool) {
              descripcion=?, orden=?
          WHERE id=?`,
         [nombre, costo, duracion, activo, categoria, grupo, descripcion, orden, request.params.id],
+=======
+      const nombre = request.body?.nombre?.trim() || rows[0].nombre;
+      const activo = typeof request.body?.activo === 'boolean' ? request.body.activo : rows[0].activo;
+      if (!Number.isFinite(costo) || costo <= 0) return response.status(400).json({ error: 'El costo debe ser mayor que cero.' });
+      if (!Number.isInteger(duracion) || duracion <= 0) return response.status(400).json({ error: 'La duración no es válida.' });
+      await pool.execute(
+        'UPDATE servicios SET nombre=?, costo=?, duracion_min=?, activo=? WHERE id=?',
+        [nombre, costo, duracion, activo, request.params.id],
+>>>>>>> origin/main
       );
       const [updated] = await pool.execute('SELECT * FROM servicios WHERE id = ?', [request.params.id]);
       response.json(updated[0]);

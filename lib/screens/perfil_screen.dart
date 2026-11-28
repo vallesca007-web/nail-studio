@@ -9,8 +9,15 @@ import '../services/google_sign_in_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_header.dart';
 import '../widgets/bottom_nav_bar.dart';
+<<<<<<< HEAD
+=======
+import '../widgets/preferences_section.dart';
+import 'ajustes_screen.dart';
+import 'citas_screen.dart';
+import 'favoritos_screen.dart';
+>>>>>>> origin/main
 import 'login_screen.dart';
-import 'servicios_screen.dart';
+import 'mis_citas_screen.dart';
 
 class PerfilScreen extends StatefulWidget {
   const PerfilScreen({super.key});
@@ -67,15 +74,88 @@ class _PerfilScreenState extends State<PerfilScreen> {
       ),
       builder: (sheetContext) => _AppointmentHistorySheet(
         appointments: _appointments!,
+        onCancel: _cancelAppointment,
         onBook: () {
           Navigator.pop(sheetContext);
           Navigator.push(
             context,
+<<<<<<< HEAD
             MaterialPageRoute<void>(builder: (_) => ServiciosScreen()),
+=======
+            MaterialPageRoute<void>(builder: (_) => const CitasScreen()),
+>>>>>>> origin/main
           );
         },
       ),
     );
+  }
+
+  Future<void> _openAppointmentsScreen() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute<void>(builder: (_) => const MisCitasScreen()),
+    );
+    if (mounted) await _loadAppointments();
+  }
+
+  void _showFavorites() {
+    Navigator.push(
+      context,
+      MaterialPageRoute<void>(builder: (_) => const FavoritosScreen()),
+    );
+  }
+
+  Future<void> _showSettings() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute<void>(builder: (_) => const AjustesScreen()),
+    );
+    if (mounted) setState(() {});
+  }
+
+  Future<Appointment?> _cancelAppointment(Appointment appointment) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Cancelar cita'),
+        content: const Text('¿Quieres cancelar esta cita?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Volver'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Cancelar cita'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted) return null;
+    if (confirmed != true) return null;
+
+    try {
+      await AppointmentService.instance.cancelAppointment(
+        appointmentId: appointment.id,
+        token: AppSession.instance.authToken,
+      );
+      if (!mounted) return null;
+      final cancelled = appointment.copyWith(estado: 'cancelada');
+      setState(() {
+        _appointments = _appointments
+            ?.map((item) => item.id == cancelled.id ? cancelled : item)
+            .toList();
+      });
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Cita cancelada.')));
+      return cancelled;
+    } on AppointmentServiceException catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(error.message)));
+      }
+      return null;
+    }
   }
 
   Future<void> _signOut() async {
@@ -105,7 +185,13 @@ class _PerfilScreenState extends State<PerfilScreen> {
     final appointments = _appointments ?? const <Appointment>[];
     final activeCount = appointments
         .where(
+<<<<<<< HEAD
           (appointment) => appointment.start?.isAfter(DateTime.now()) ?? false,
+=======
+          (appointment) =>
+              (appointment.start?.isAfter(DateTime.now()) ?? false) &&
+              ['pendiente', 'agendada'].contains(appointment.estado),
+>>>>>>> origin/main
         )
         .length;
     // loadMine ordena de más antigua a más reciente.
@@ -148,6 +234,15 @@ class _PerfilScreenState extends State<PerfilScreen> {
                       ),
                     ),
                   const SizedBox(height: 24),
+<<<<<<< HEAD
+=======
+                  PreferencesSection(
+                    onAppointmentsTap: _openAppointmentsScreen,
+                    onFavoritesTap: _showFavorites,
+                    onSettingsTap: _showSettings,
+                  ),
+                  const SizedBox(height: 20),
+>>>>>>> origin/main
                   OutlinedButton.icon(
                     onPressed: _signingOut ? null : _signOut,
                     icon: const Icon(Icons.logout),
@@ -180,7 +275,11 @@ class _PerfilScreenState extends State<PerfilScreen> {
         ),
       ),
       bottomNavigationBar: BottomNavBar(
+<<<<<<< HEAD
         selectedIndex: 2,
+=======
+        selectedIndex: 3,
+>>>>>>> origin/main
         onTap: (index) => openTab(context, index),
       ),
     );
@@ -299,7 +398,11 @@ class _PerfilScreenState extends State<PerfilScreen> {
             ? _loadAppointments
             : () => Navigator.push(
                 context,
+<<<<<<< HEAD
                 MaterialPageRoute<void>(builder: (_) => ServiciosScreen()),
+=======
+                MaterialPageRoute<void>(builder: (_) => const CitasScreen()),
+>>>>>>> origin/main
               ),
         trailing: hasError ? Icons.refresh : Icons.chevron_right,
       );
@@ -312,7 +415,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
     return _ActionCard(
       icon: Icons.spa_outlined,
       title: appointment.serviceName,
-      subtitle: '$date hs\n✧  Confirmada',
+      subtitle: '$date hs\nEstado: ${appointment.estado}',
       onTap: _showAppointments,
       trailing: Icons.chevron_right,
     );
@@ -411,18 +514,61 @@ class _ActionCard extends StatelessWidget {
   }
 }
 
+<<<<<<< HEAD
 class _AppointmentHistorySheet extends StatelessWidget {
+=======
+class _AppointmentHistorySheet extends StatefulWidget {
+>>>>>>> origin/main
   const _AppointmentHistorySheet({
     required this.appointments,
+    required this.onCancel,
     required this.onBook,
   });
 
   final List<Appointment> appointments;
+  final Future<Appointment?> Function(Appointment) onCancel;
   final VoidCallback onBook;
 
   @override
+  State<_AppointmentHistorySheet> createState() =>
+      _AppointmentHistorySheetState();
+}
+
+class _AppointmentHistorySheetState extends State<_AppointmentHistorySheet> {
+  late List<Appointment> _appointments;
+  final Set<int> _cancelling = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _appointments = List.of(widget.appointments);
+  }
+
+  Future<void> _cancel(Appointment appointment) async {
+    if (!_cancelling.add(appointment.id)) return;
+    setState(() {});
+    try {
+      final updated = await widget.onCancel(appointment);
+      if (updated != null && mounted) {
+        setState(() {
+          _appointments = _appointments
+              .map((item) => item.id == updated.id ? updated : item)
+              .toList();
+        });
+      }
+    } finally {
+      _cancelling.remove(appointment.id);
+      if (mounted) setState(() {});
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+<<<<<<< HEAD
     final sorted = appointments.reversed.toList();
+=======
+    final sorted = _appointments.reversed.toList();
+>>>>>>> origin/main
 
     return SafeArea(
       child: Padding(
@@ -468,30 +614,99 @@ class _AppointmentHistorySheet extends StatelessWidget {
                   separatorBuilder: (_, _) => const SizedBox(height: 8),
                   itemBuilder: (context, index) {
                     final appointment = sorted[index];
+                    final canCancel =
+                        [
+                          'pendiente',
+                          'agendada',
+                        ].contains(appointment.estado) &&
+                        (appointment.start?.isAfter(DateTime.now()) ?? false);
+                    final cancelling = _cancelling.contains(appointment.id);
                     return Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
                         color: AppTheme.surface,
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      child: Row(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          const CircleAvatar(
-                            backgroundColor: AppTheme.softPink,
-                            foregroundColor: AppTheme.accent,
-                            child: Icon(Icons.spa_outlined),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  appointment.serviceName,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                  ),
+                          Row(
+                            children: [
+                              const CircleAvatar(
+                                backgroundColor: AppTheme.softPink,
+                                foregroundColor: AppTheme.accent,
+                                child: Icon(Icons.spa_outlined),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      appointment.serviceName,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      appointment.start == null
+                                          ? 'Fecha por confirmar'
+                                          : DateFormat(
+                                              'EEEE, d MMMM · HH:mm',
+                                              'es',
+                                            ).format(appointment.start!),
+                                      style: const TextStyle(
+                                        color: AppTheme.muted,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 3),
+                                    Text(
+                                      'Estado: ${appointment.estado}',
+                                      style: const TextStyle(
+                                        color: AppTheme.muted,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                  ],
                                 ),
+                              ),
+                              Icon(
+                                appointment.estado == 'cancelada'
+                                    ? Icons.cancel_outlined
+                                    : appointment.start?.isAfter(
+                                            DateTime.now(),
+                                          ) ??
+                                          false
+                                    ? Icons.check_circle_outline
+                                    : Icons.history,
+                                color: appointment.estado == 'cancelada'
+                                    ? AppTheme.muted
+                                    : AppTheme.accent,
+                                size: 19,
+                              ),
+                            ],
+                          ),
+                          if (canCancel)
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: TextButton.icon(
+                                onPressed: cancelling
+                                    ? null
+                                    : () => _cancel(appointment),
+                                icon: cancelling
+                                    ? const SizedBox.square(
+                                        dimension: 16,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                    : const Icon(Icons.cancel_outlined),
+                                label: Text(
+                                  cancelling ? 'Cancelando…' : 'Cancelar cita',
+                                ),
+<<<<<<< HEAD
                                 const SizedBox(height: 4),
                                 Text(
                                   appointment.start == null
@@ -504,9 +719,14 @@ class _AppointmentHistorySheet extends StatelessWidget {
                                     color: AppTheme.muted,
                                     fontSize: 11,
                                   ),
+=======
+                                style: TextButton.styleFrom(
+                                  foregroundColor: AppTheme.accent,
+>>>>>>> origin/main
                                 ),
-                              ],
+                              ),
                             ),
+<<<<<<< HEAD
                           ),
                           Icon(
                             appointment.start?.isAfter(DateTime.now()) ?? false
@@ -515,6 +735,8 @@ class _AppointmentHistorySheet extends StatelessWidget {
                             color: AppTheme.accent,
                             size: 19,
                           ),
+=======
+>>>>>>> origin/main
                         ],
                       ),
                     );
@@ -525,7 +747,7 @@ class _AppointmentHistorySheet extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: onBook,
+                onPressed: widget.onBook,
                 icon: const Icon(Icons.arrow_forward_rounded),
                 label: const Text('Elige tu servicio'),
                 style: ElevatedButton.styleFrom(

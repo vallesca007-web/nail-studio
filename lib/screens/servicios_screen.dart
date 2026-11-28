@@ -3,6 +3,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+<<<<<<< HEAD
 import '../models/studio_service.dart';
 import '../navigation/tabs.dart';
 import '../services/service_catalog_service.dart';
@@ -10,11 +11,18 @@ import '../theme/app_theme.dart';
 import '../widgets/app_header.dart';
 import '../widgets/bottom_nav_bar.dart';
 import 'citas_screen.dart';
+=======
+import '../navigation/tabs.dart';
+import '../theme/app_theme.dart';
+import '../widgets/app_header.dart';
+import '../widgets/bottom_nav_bar.dart';
+>>>>>>> origin/main
 import 'perfil_screen.dart';
 
 class ServiciosScreen extends StatefulWidget {
   const ServiciosScreen({super.key, this.categoria});
 
+<<<<<<< HEAD
   final String? categoria;
 
   @override
@@ -66,6 +74,35 @@ class _ServiciosScreenState extends State<ServiciosScreen> {
     _loadServices();
   }
 
+=======
+  static const List<(String, String, String, String)> _services = [
+    (
+      'Manicura',
+      'Preparación precisa de cutícula y acabado pulido.',
+      'Desde 45 min',
+      'https://images.unsplash.com/photo-1604654894610-df63bc536371?auto=format&fit=crop&w=900&q=80',
+    ),
+    (
+      'Pedicura spa',
+      'Ritual relajante de cuidado, exfoliación y esmaltado.',
+      'Desde 60 min',
+      'https://images.unsplash.com/photo-1600948836101-f9ffda59d250?auto=format&fit=crop&w=900&q=80',
+    ),
+    (
+      'Nail art',
+      'Diseños de autor con detalles hechos a mano.',
+      'Desde 30 min',
+      'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=900&q=80',
+    ),
+    (
+      'Softgel & Polygel',
+      'Extensiones ligeras con forma y largo personalizados.',
+      'Desde 90 min',
+      'https://images.unsplash.com/photo-1519014816548-bf5fe059798b?auto=format&fit=crop&w=900&q=80',
+    ),
+  ];
+
+>>>>>>> origin/main
   @override
   Widget build(BuildContext context) {
     final title = _category == 'manicura' ? 'Manicura' : 'Pedicura';
@@ -146,6 +183,7 @@ class _ServiciosScreenState extends State<ServiciosScreen> {
       bottomNavigationBar: BottomNavBar(
         selectedIndex: 1,
         onTap: (index) => openTab(context, index),
+<<<<<<< HEAD
       ),
     );
   }
@@ -557,6 +595,8 @@ class _StudioContactCard extends StatelessWidget {
             ],
           ),
         ),
+=======
+>>>>>>> origin/main
       ),
     );
   }

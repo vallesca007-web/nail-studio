@@ -125,6 +125,26 @@ class AppointmentService {
     });
   }
 
+<<<<<<< HEAD
+=======
+  Future<void> cancelAppointment({
+    required int appointmentId,
+    required String token,
+  }) async {
+    if (token.isEmpty) {
+      throw const AppointmentServiceException(
+        'Inicia sesión para cancelar tu cita.',
+      );
+    }
+    await _send(
+      () => _client.post(
+        _endpoint('appointments/$appointmentId/cancel'),
+        headers: {'authorization': 'Bearer $token'},
+      ),
+    );
+  }
+
+>>>>>>> origin/main
   /// Envía la petición y traduce los fallos de red a mensajes para la usuaria.
   Future<Object?> _send(Future<http.Response> Function() request) async {
     try {

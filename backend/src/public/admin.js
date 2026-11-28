@@ -142,7 +142,11 @@ async function loadAppointments() {
             ? `<button class="primary confirm-button" data-id="${escapeHtml(row.id)}">Confirmar</button>
                <button class="secondary reject-button" data-id="${escapeHtml(row.id)}">Rechazar</button>`
             : ''}
+<<<<<<< HEAD
           ${row.estado === 'agendada'
+=======
+          ${['pendiente', 'agendada'].includes(row.estado)
+>>>>>>> origin/main
             ? `<button class="secondary cancel-button" data-id="${escapeHtml(row.id)}">Cancelar cita</button>`
             : ''}
         </div>
@@ -251,9 +255,12 @@ document.querySelector('#serviceForm').addEventListener('submit', async (event) 
         nombre: form.get('name'),
         costo: Number(form.get('price')),
         duracion_min: Number(form.get('durationMinutes')),
+<<<<<<< HEAD
         categoria: form.get('category'),
         grupo: form.get('group'),
         descripcion: form.get('description'),
+=======
+>>>>>>> origin/main
       }),
     });
     formElement.reset();
@@ -272,6 +279,7 @@ async function loadServices() {
       `<option value="${escapeHtml(row.id)}">${escapeHtml(row.nombre)}</option>`).join('');
     const list = document.querySelector('#servicesList');
     list.innerHTML = state.services.length ? state.services.map((row) => `<article class="card">
+<<<<<<< HEAD
       <div class="card-row"><div><h3>${escapeHtml(row.nombre)}</h3>
       <div class="meta">${escapeHtml(row.categoria)} · ${escapeHtml(row.grupo)} · ${row.duracion_min} minutos</div>
       <div class="meta">${escapeHtml(row.descripcion || '')}</div></div>
@@ -288,6 +296,10 @@ async function loadServices() {
         <input name="durationMinutes" type="number" min="1" max="1440" value="${row.duracion_min}" required>
         <button class="primary" type="submit">Guardar datos</button>
       </form></details>
+=======
+      <div class="card-row"><div><h3>${escapeHtml(row.nombre)}</h3><div class="meta">${row.duracion_min} minutos</div></div>
+      <button class="secondary delete-service" data-id="${escapeHtml(row.id)}" data-name="${escapeHtml(row.nombre)}">Eliminar</button></div>
+>>>>>>> origin/main
       <div class="price-line">Costo: $<input class="service-price" data-id="${escapeHtml(row.id)}" type="number" min="0.01" step="0.01" value="${Number(row.costo).toFixed(2)}">
       <button class="primary save-price" data-id="${escapeHtml(row.id)}">Guardar</button></div>
     </article>`).join('') : '<div class="card">No hay servicios.</div>';
@@ -299,6 +311,7 @@ async function loadServices() {
         loadServices();
       } catch (error) { message(error.message, true); }
     }));
+<<<<<<< HEAD
     document.querySelectorAll('.edit-service-form').forEach((formElement) => {
       formElement.addEventListener('submit', async (event) => {
         event.preventDefault();
@@ -319,6 +332,8 @@ async function loadServices() {
         } catch (error) { message(error.message, true); }
       });
     });
+=======
+>>>>>>> origin/main
     document.querySelectorAll('.delete-service').forEach((button) => button.addEventListener('click', async () => {
       if (!confirm(`¿Eliminar ${button.dataset.name}?`)) return;
       try {
