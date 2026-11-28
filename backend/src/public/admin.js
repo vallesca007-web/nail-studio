@@ -196,14 +196,15 @@ document.querySelector('#addSpecialistButton').addEventListener('click', () => {
 
 document.querySelector('#specialistForm').addEventListener('submit', async (event) => {
   event.preventDefault();
-  const form = new FormData(event.currentTarget);
+  const formElement = event.currentTarget;
+  const form = new FormData(formElement);
   try {
     await api('/api/admin/specialists', {
       method: 'POST',
       body: JSON.stringify({ nombre: form.get('name') }),
     });
-    event.currentTarget.reset();
-    event.currentTarget.classList.add('hidden');
+    formElement.reset();
+    formElement.classList.add('hidden');
     message('Manicurista agregada.');
     loadSpecialists();
   } catch (error) { message(error.message, true); }
@@ -235,7 +236,8 @@ document.querySelector('#addServiceButton').addEventListener('click', () => {
 
 document.querySelector('#serviceForm').addEventListener('submit', async (event) => {
   event.preventDefault();
-  const form = new FormData(event.currentTarget);
+  const formElement = event.currentTarget;
+  const form = new FormData(formElement);
   try {
     await api('/api/admin/services', {
       method: 'POST',
@@ -243,10 +245,13 @@ document.querySelector('#serviceForm').addEventListener('submit', async (event) 
         nombre: form.get('name'),
         costo: Number(form.get('price')),
         duracion_min: Number(form.get('durationMinutes')),
+        categoria: form.get('category'),
+        grupo: form.get('group'),
+        descripcion: form.get('description'),
       }),
     });
-    event.currentTarget.reset();
-    event.currentTarget.classList.add('hidden');
+    formElement.reset();
+    formElement.classList.add('hidden');
     message('Servicio agregado.');
     loadServices();
   } catch (error) { message(error.message, true); }
@@ -261,8 +266,22 @@ async function loadServices() {
       `<option value="${escapeHtml(row.id)}">${escapeHtml(row.nombre)}</option>`).join('');
     const list = document.querySelector('#servicesList');
     list.innerHTML = state.services.length ? state.services.map((row) => `<article class="card">
-      <div class="card-row"><div><h3>${escapeHtml(row.nombre)}</h3><div class="meta">${row.duracion_min} minutos</div></div>
+      <div class="card-row"><div><h3>${escapeHtml(row.nombre)}</h3>
+      <div class="meta">${escapeHtml(row.categoria)} · ${escapeHtml(row.grupo)} · ${row.duracion_min} minutos</div>
+      <div class="meta">${escapeHtml(row.descripcion || '')}</div></div>
       <button class="secondary delete-service" data-id="${escapeHtml(row.id)}" data-name="${escapeHtml(row.nombre)}">Eliminar</button></div>
+      <details class="service-edit"><summary>Editar datos del servicio</summary>
+      <form class="service-form edit-service-form" data-id="${escapeHtml(row.id)}">
+        <input name="name" value="${escapeHtml(row.nombre)}" maxlength="100" required>
+        <select name="category" required>
+          <option value="manicura" ${row.categoria === 'manicura' ? 'selected' : ''}>Manicura</option>
+          <option value="pedicura" ${row.categoria === 'pedicura' ? 'selected' : ''}>Pedicura</option>
+        </select>
+        <input name="group" value="${escapeHtml(row.grupo)}" maxlength="60" placeholder="Grupo" required>
+        <input name="description" value="${escapeHtml(row.descripcion || '')}" maxlength="255" placeholder="Descripción">
+        <input name="durationMinutes" type="number" min="1" max="1440" value="${row.duracion_min}" required>
+        <button class="primary" type="submit">Guardar datos</button>
+      </form></details>
       <div class="price-line">Costo: $<input class="service-price" data-id="${escapeHtml(row.id)}" type="number" min="0.01" step="0.01" value="${Number(row.costo).toFixed(2)}">
       <button class="primary save-price" data-id="${escapeHtml(row.id)}">Guardar</button></div>
     </article>`).join('') : '<div class="card">No hay servicios.</div>';
@@ -274,6 +293,26 @@ async function loadServices() {
         loadServices();
       } catch (error) { message(error.message, true); }
     }));
+    document.querySelectorAll('.edit-service-form').forEach((formElement) => {
+      formElement.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const form = new FormData(formElement);
+        try {
+          await api(`/api/admin/services/${encodeURIComponent(formElement.dataset.id)}`, {
+            method: 'PUT',
+            body: JSON.stringify({
+              nombre: form.get('name'),
+              categoria: form.get('category'),
+              grupo: form.get('group'),
+              descripcion: form.get('description'),
+              duracion_min: Number(form.get('durationMinutes')),
+            }),
+          });
+          message('Servicio actualizado.');
+          loadServices();
+        } catch (error) { message(error.message, true); }
+      });
+    });
     document.querySelectorAll('.delete-service').forEach((button) => button.addEventListener('click', async () => {
       if (!confirm(`¿Eliminar ${button.dataset.name}?`)) return;
       try {

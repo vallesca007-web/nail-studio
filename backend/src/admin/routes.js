@@ -10,6 +10,8 @@ const {
 } = require('./auth');
 const { adjustPrice } = require('./price');
 
+const serviceCategories = new Set(['manicura', 'pedicura']);
+
 module.exports = function createAdminRoutes(pool) {
   const router = express.Router();
 
@@ -45,7 +47,9 @@ module.exports = function createAdminRoutes(pool) {
   router.get('/services', requireAdmin, async (request, response, next) => {
     try {
       const [rows] = await pool.execute(
-        'SELECT id, nombre, costo, duracion_min, activo FROM servicios ORDER BY nombre',
+        `SELECT id, nombre, costo, duracion_min, activo, categoria, grupo,
+                descripcion, orden
+         FROM servicios ORDER BY categoria, grupo, orden, nombre`,
       );
       response.json(rows);
     } catch (error) {
@@ -55,17 +59,30 @@ module.exports = function createAdminRoutes(pool) {
 
   router.post('/services', requireAdmin, async (request, response, next) => {
     try {
-      const nombre = String(request.body?.nombre || '').trim();
+      const nombre = typeof request.body?.nombre === 'string' ? request.body.nombre.trim() : '';
       const costo = Number(request.body?.costo);
       const duracion = Number(request.body?.duracion_min);
+      const categoria = request.body?.categoria;
+      const grupo = typeof request.body?.grupo === 'string' ? request.body.grupo.trim() : '';
+      const descripcion = typeof request.body?.descripcion === 'string'
+        ? request.body.descripcion.trim()
+        : null;
       if (!nombre || nombre.length > 100) return response.status(400).json({ error: 'El nombre no es válido.' });
       if (!Number.isFinite(costo) || costo <= 0) return response.status(400).json({ error: 'El costo debe ser mayor que cero.' });
       if (!Number.isInteger(duracion) || duracion <= 0) return response.status(400).json({ error: 'La duración no es válida.' });
+      if (!serviceCategories.has(categoria)) return response.status(400).json({ error: 'La categoría no es válida.' });
+      if (!grupo || grupo.length > 60) return response.status(400).json({ error: 'El grupo no es válido.' });
+      if (descripcion !== null && descripcion.length > 255) return response.status(400).json({ error: 'La descripción no puede superar 255 caracteres.' });
       const [result] = await pool.execute(
-        'INSERT INTO servicios (nombre, costo, duracion_min, activo) VALUES (?, ?, ?, TRUE)',
-        [nombre, costo, duracion],
+        `INSERT INTO servicios
+         (nombre, costo, duracion_min, activo, categoria, grupo, descripcion)
+         VALUES (?, ?, ?, TRUE, ?, ?, ?)`,
+        [nombre, costo, duracion, categoria, grupo, descripcion],
       );
-      response.status(201).json({ id: result.insertId, nombre, costo, duracion_min: duracion, activo: true });
+      response.status(201).json({
+        id: result.insertId, nombre, costo, duracion_min: duracion, activo: true,
+        categoria, grupo, descripcion, orden: 0,
+      });
     } catch (error) {
       next(error);
     }
@@ -77,13 +94,35 @@ module.exports = function createAdminRoutes(pool) {
       if (!rows.length) return response.status(404).json({ error: 'Servicio inexistente.' });
       const costo = request.body?.costo === undefined ? rows[0].costo : Number(request.body.costo);
       const duracion = request.body?.duracion_min === undefined ? rows[0].duracion_min : Number(request.body.duracion_min);
-      const nombre = request.body?.nombre?.trim() || rows[0].nombre;
+      const nombre = request.body?.nombre === undefined
+        ? rows[0].nombre
+        : typeof request.body.nombre === 'string' ? request.body.nombre.trim() : '';
+      const categoria = request.body?.categoria === undefined
+        ? rows[0].categoria
+        : request.body.categoria;
+      const grupo = request.body?.grupo === undefined
+        ? rows[0].grupo
+        : typeof request.body.grupo === 'string' ? request.body.grupo.trim() : '';
+      const descripcion = request.body?.descripcion === undefined
+        ? rows[0].descripcion
+        : typeof request.body.descripcion === 'string'
+          ? request.body.descripcion.trim()
+          : null;
       const activo = typeof request.body?.activo === 'boolean' ? request.body.activo : rows[0].activo;
+      const orden = request.body?.orden === undefined ? rows[0].orden : Number(request.body.orden);
+      if (!nombre || nombre.length > 100) return response.status(400).json({ error: 'El nombre no es válido.' });
       if (!Number.isFinite(costo) || costo <= 0) return response.status(400).json({ error: 'El costo debe ser mayor que cero.' });
       if (!Number.isInteger(duracion) || duracion <= 0) return response.status(400).json({ error: 'La duración no es válida.' });
+      if (!serviceCategories.has(categoria)) return response.status(400).json({ error: 'La categoría no es válida.' });
+      if (!grupo || grupo.length > 60) return response.status(400).json({ error: 'El grupo no es válido.' });
+      if (descripcion !== null && descripcion.length > 255) return response.status(400).json({ error: 'La descripción no puede superar 255 caracteres.' });
+      if (!Number.isInteger(orden)) return response.status(400).json({ error: 'El orden no es válido.' });
       await pool.execute(
-        'UPDATE servicios SET nombre=?, costo=?, duracion_min=?, activo=? WHERE id=?',
-        [nombre, costo, duracion, activo, request.params.id],
+        `UPDATE servicios
+         SET nombre=?, costo=?, duracion_min=?, activo=?, categoria=?, grupo=?,
+             descripcion=?, orden=?
+         WHERE id=?`,
+        [nombre, costo, duracion, activo, categoria, grupo, descripcion, orden, request.params.id],
       );
       const [updated] = await pool.execute('SELECT * FROM servicios WHERE id = ?', [request.params.id]);
       response.json(updated[0]);

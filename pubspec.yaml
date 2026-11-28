@@ -9,6 +9,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  font_awesome_flutter: ^11.0.0
   google_fonts: ^9.0.0
   google_sign_in: ^7.2.0
   http: ^1.6.0
@@ -25,3 +26,5 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/logo.png
+    - assets/images/servicio_manicura.jpg
+    - assets/images/servicio_pedicura.jpg

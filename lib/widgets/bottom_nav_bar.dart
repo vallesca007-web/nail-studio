@@ -15,7 +15,6 @@ class BottomNavBar extends StatelessWidget {
   static const _items = [
     (Icons.home_outlined, 'Inicio'),
     (Icons.spa_outlined, 'Servicios'),
-    (Icons.calendar_month_outlined, 'Cita'),
     (Icons.person_outline, 'Perfil'),
   ];
 

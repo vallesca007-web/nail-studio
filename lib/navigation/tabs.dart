@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../screens/citas_screen.dart';
 import '../screens/home_screen.dart';
 import '../screens/perfil_screen.dart';
 import '../screens/servicios_screen.dart';
@@ -13,8 +12,7 @@ void openTab(BuildContext context, int index) {
   final page = switch (index) {
     0 => const HomeScreen(),
     1 => ServiciosScreen(),
-    2 => const CitasScreen(),
-    3 => PerfilScreen(),
+    2 => PerfilScreen(),
     _ => null,
   };
   if (page == null) return;

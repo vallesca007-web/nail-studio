@@ -10,8 +10,6 @@ const files = {
   'setup-local': '../database/setup-local.sql',
   schema: '../database/schema.sql',
   seed: '../database/seed.sql',
-  upgrade: '../database/upgrade.sql',
-  ensure: '../database/ensure.sql',
 };
 
 const type = process.argv[2];
@@ -62,6 +60,36 @@ const expectedColumns = {
   citas: ['manicurista_id', 'fecha', 'hora', 'hora_fin', 'precio'],
 };
 
+async function ensureServiceColumns() {
+  const [rows] = await connection.query(
+    `SELECT COLUMN_NAME FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'servicios'`,
+  );
+  const existing = new Set(rows.map((row) => row.COLUMN_NAME));
+  const additions = [
+    ['categoria', "ADD COLUMN categoria VARCHAR(20) NOT NULL DEFAULT 'manicura'"],
+    ['grupo', "ADD COLUMN grupo VARCHAR(60) NOT NULL DEFAULT 'Manicura'"],
+    ['descripcion', 'ADD COLUMN descripcion VARCHAR(255) NULL'],
+    ['orden', 'ADD COLUMN orden INT NOT NULL DEFAULT 0'],
+  ];
+
+  for (const [name, definition] of additions) {
+    if (existing.has(name)) continue;
+    await connection.query(`ALTER TABLE servicios ${definition}`);
+    if (name === 'categoria') {
+      await connection.query(
+        'ALTER TABLE servicios MODIFY COLUMN categoria VARCHAR(20) NOT NULL',
+      );
+    }
+    if (name === 'grupo') {
+      await connection.query(
+        'ALTER TABLE servicios MODIFY COLUMN grupo VARCHAR(60) NOT NULL',
+      );
+    }
+    console.log(`Columna servicios.${name} agregada.`);
+  }
+}
+
 async function warnIfLegacy() {
   for (const [table, expected] of Object.entries(expectedColumns)) {
     const [rows] = await connection.query(
@@ -81,9 +109,12 @@ async function warnIfLegacy() {
 
 async function main() {
   if (!files[type] && type !== 'reset') {
-    throw new Error('Uso: npm run db:setup | db:schema | db:seed | db:upgrade | db:reset');
+    throw new Error('Uso: npm run db:setup | db:schema | db:seed | db:reset');
   }
   const database = quotedDatabase();
+  if (dbName !== 'anne_nail_studio') {
+    throw new Error('DB_NAME debe ser anne_nail_studio para evitar crear otra base.');
+  }
 
   let sql = null;
   if (type !== 'reset') {
@@ -129,11 +160,10 @@ async function main() {
   } else {
     await connection.query(sql);
   }
-  // Los ajustes de ensure.sql son idempotentes y dejan al dia una base creada
-  // con una version anterior del esquema.
-  if (type === 'schema' || type === 'reset') await connection.query(readSql('ensure'));
-
-  if (type === 'schema') await warnIfLegacy();
+  if (type === 'schema') {
+    await ensureServiceColumns();
+    await warnIfLegacy();
+  }
 
   await connection.end();
   console.log(`Ejecutado en la base ${dbName}.`);

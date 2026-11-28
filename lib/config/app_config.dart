@@ -29,7 +29,7 @@ class AppConfig {
   static const studioEmail = 'YOUR_STUDIO_EMAIL';
 
   static const studioName = 'Anne Nail Studio';
-  static const currencyCode = 'USD';
+  static const currencyCode = 'MXN';
 
   // Servicio que se reserva desde la app. Debe existir en la tabla servicios.
   static const signatureServiceId = 1;

@@ -20,16 +20,24 @@ DateTime _initialBookingDay() {
 }
 
 class CitasScreen extends StatefulWidget {
-  const CitasScreen({super.key});
+  const CitasScreen({
+    super.key,
+    this.serviceId,
+    this.serviceName,
+    this.serviceCost,
+    this.serviceDurationMinutes,
+  });
+
+  final int? serviceId;
+  final String? serviceName;
+  final double? serviceCost;
+  final int? serviceDurationMinutes;
 
   @override
   State<CitasScreen> createState() => _CitasScreenState();
 }
 
 class _CitasScreenState extends State<CitasScreen> {
-  static const _serviceName = 'Manicura y Esmaltado';
-  static const _serviceDuration = AppConfig.signatureServiceDuration;
-
   DateTime _selectedDay = _initialBookingDay();
   DateTime? _selectedSlot;
   List<DateTime> _availableSlots = [];
@@ -40,9 +48,16 @@ class _CitasScreenState extends State<CitasScreen> {
   double _servicePrice = AppConfig.signatureServicePrice;
   final TextEditingController _phoneController = TextEditingController();
 
+  int get _serviceId => widget.serviceId ?? AppConfig.signatureServiceId;
+  String get _serviceName => widget.serviceName ?? 'Manicura y Esmaltado';
+  int get _serviceDurationMinutes =>
+      widget.serviceDurationMinutes ??
+      AppConfig.signatureServiceDuration.inMinutes;
+
   @override
   void initState() {
     super.initState();
+    _servicePrice = widget.serviceCost ?? AppConfig.signatureServicePrice;
     _loadSlots();
   }
 
@@ -63,7 +78,7 @@ class _CitasScreenState extends State<CitasScreen> {
     try {
       final availability = await AppointmentService.instance.getAvailability(
         date: day,
-        serviceId: AppConfig.signatureServiceId,
+        serviceId: _serviceId,
       );
       if (!mounted || request != _availabilityRequest) return;
       setState(() {
@@ -142,7 +157,7 @@ class _CitasScreenState extends State<CitasScreen> {
         );
       }
       final appointment = await AppointmentService.instance.createAppointment(
-        serviceId: AppConfig.signatureServiceId,
+        serviceId: _serviceId,
         date: day,
         time: slot,
         token: session.authToken,
@@ -195,6 +210,7 @@ class _CitasScreenState extends State<CitasScreen> {
     final morning = _availableSlots.where((slot) => slot.hour < 12).toList();
     final afternoon = _availableSlots.where((slot) => slot.hour >= 12).toList();
     final canConfirm = _selectedSlot != null && !_booking && !_loadingSlots;
+    final compactHeader = MediaQuery.sizeOf(context).width < 360;
 
     return Scaffold(
       body: SafeArea(
@@ -213,24 +229,49 @@ class _CitasScreenState extends State<CitasScreen> {
                   Row(
                     children: [
                       Expanded(
+                        flex: 2,
                         child: Align(
                           alignment: Alignment.centerLeft,
-                          child: SecondaryPill(
-                            label: 'Atrás',
-                            icon: Icons.arrow_back,
-                            onPressed: () => Navigator.maybePop(context),
+                          child: Tooltip(
+                            message: 'Atrás',
+                            child: OutlinedButton.icon(
+                              onPressed: () => Navigator.maybePop(context),
+                              icon: const Icon(Icons.arrow_back, size: 16),
+                              label: compactHeader
+                                  ? const SizedBox.shrink()
+                                  : const Text(
+                                      'Atrás',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: AppTheme.text,
+                                backgroundColor: AppTheme.surface,
+                                side: BorderSide(
+                                  color: AppTheme.text.withValues(alpha: 0.08),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                ),
+                                minimumSize: const Size(0, 46),
+                                shape: const StadiumBorder(),
+                              ),
+                            ),
                           ),
                         ),
                       ),
                       Expanded(
-                        flex: 2,
+                        flex: 3,
                         child: Text(
                           'Agendar cita',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           textAlign: TextAlign.center,
-                          style: AppTheme.titleStyle.copyWith(fontSize: 22),
+                          style: AppTheme.titleStyle.copyWith(fontSize: 20),
                         ),
                       ),
                       Expanded(
+                        flex: 2,
                         child: Align(
                           alignment: Alignment.centerRight,
                           child: IconButton(
@@ -329,7 +370,7 @@ class _CitasScreenState extends State<CitasScreen> {
         ),
       ),
       bottomNavigationBar: BottomNavBar(
-        selectedIndex: 2,
+        selectedIndex: 1,
         onTap: (index) => openTab(context, index),
       ),
     );
@@ -379,7 +420,7 @@ class _CitasScreenState extends State<CitasScreen> {
                 ),
                 const SizedBox(height: 5),
                 Text(
-                  '${_serviceDuration.inMinutes} min  ·  $price',
+                  '$_serviceDurationMinutes min  ·  $price',
                   style: const TextStyle(color: AppTheme.muted, fontSize: 11),
                 ),
               ],

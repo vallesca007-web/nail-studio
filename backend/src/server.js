@@ -10,6 +10,8 @@ const rateLimit = require('express-rate-limit');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { createPool } = require('mysql2/promise');
+const asyncHandler = require('./middleware/asyncHandler');
+const createServiceCatalogRoutes = require('./routes/serviceCatalogRoutes');
 
 const {
   dateInTimeZone,
@@ -46,9 +48,6 @@ class ApiError extends Error {
   }
 }
 
-const asyncHandler = (handler) => (request, response, next) =>
-  Promise.resolve(handler(request, response, next)).catch(next);
-
 function getBusinessDays() {
   const value = process.env.BUSINESS_DAYS || '1,2,3,4,5,6';
   const days = value.split(',').map((item) => Number(item.trim()));
@@ -59,10 +58,10 @@ function getBusinessDays() {
 }
 
 function getBusinessHours() {
-  const opening = Number(process.env.BUSINESS_OPEN_HOUR || 10);
-  const closing = Number(process.env.BUSINESS_CLOSE_HOUR || 19);
-  const closingMinute = Number(process.env.BUSINESS_CLOSE_MINUTE || 30);
-  const interval = Number(process.env.SLOT_INTERVAL_MINUTES || 30);
+  const opening = Number(process.env.BUSINESS_OPEN_HOUR || 9);
+  const closing = Number(process.env.BUSINESS_CLOSE_HOUR || 18);
+  const closingMinute = Number(process.env.BUSINESS_CLOSE_MINUTE || 0);
+  const interval = Number(process.env.SLOT_INTERVAL_MINUTES || 120);
   if (
     !Number.isInteger(opening) ||
     !Number.isInteger(closing) ||
@@ -189,6 +188,7 @@ app.use((request, response, next) => {
 });
 app.use(express.json({ limit: '16kb' }));
 app.use(cookieParser());
+app.use('/api/servicios', createServiceCatalogRoutes(pool));
 
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -365,6 +365,9 @@ app.get('/api/appointments/mine', requireUser, asyncHandler(async (request, resp
 }));
 
 app.use('/api/admin', require('./admin/routes')(pool));
+app.get('/admin/logo.png', (request, response) => {
+  response.sendFile(path.resolve(__dirname, '../../assets/images/logo.png'));
+});
 app.use('/admin', express.static(path.join(__dirname, 'public')));
 app.get('/admin', (request, response) => response.sendFile(path.join(__dirname, 'public/index.html')));
 

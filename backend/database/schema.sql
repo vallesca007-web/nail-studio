@@ -1,25 +1,25 @@
--- Esquema de Anne Nail Studio para MySQL 8.
--- Mismas tablas y columnas que la version anterior; solo cambian indices,
--- motor explicito y restricciones de integridad.
--- La base la crea y selecciona scripts/run-sql.js con el DB_NAME del .env.
+CREATE DATABASE IF NOT EXISTS anne_nail_studio
+  CHARACTER SET utf8mb4
+  COLLATE utf8mb4_unicode_ci;
+USE anne_nail_studio;
 
 CREATE TABLE IF NOT EXISTS usuarios (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  correo VARCHAR(120) NOT NULL,
+  correo VARCHAR(120) NOT NULL UNIQUE,
   contrasena_hash VARCHAR(255) NOT NULL,
-  creado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE KEY uq_usuarios_correo (correo)
+  creado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS servicios (
   id INT AUTO_INCREMENT PRIMARY KEY,
   nombre VARCHAR(100) NOT NULL,
-  costo DECIMAL(10,2) NOT NULL,
-  duracion_min INT NOT NULL,
+  costo DECIMAL(10,2) NOT NULL CHECK (costo > 0),
+  duracion_min INT NOT NULL CHECK (duracion_min > 0),
   activo BOOLEAN NOT NULL DEFAULT TRUE,
-  CONSTRAINT chk_servicios_costo CHECK (costo > 0),
-  CONSTRAINT chk_servicios_duracion CHECK (duracion_min > 0),
-  KEY idx_servicios_activo_nombre (activo, nombre)
+  categoria VARCHAR(20) NOT NULL,
+  grupo VARCHAR(60) NOT NULL,
+  descripcion VARCHAR(255) NULL,
+  orden INT NOT NULL DEFAULT 0
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS manicuristas (
@@ -50,13 +50,9 @@ CREATE TABLE IF NOT EXISTS citas (
     ON UPDATE CASCADE ON DELETE RESTRICT,
   CONSTRAINT fk_citas_manicurista FOREIGN KEY (manicurista_id) REFERENCES manicuristas (id)
     ON UPDATE CASCADE ON DELETE RESTRICT,
-  -- Disponibilidad y solapamiento: un dia, sin canceladas, por rango de hora.
   KEY idx_citas_agenda (fecha, estado, hora, hora_fin),
-  -- "Mis citas" y borrado de usuarios: agrupado por cliente y ordenado por fecha.
   KEY idx_citas_usuario (usuario_id, fecha, hora),
-  -- Listado del panel filtrado por estado y ordenado por fecha descendente.
   KEY idx_citas_estado_fecha (estado, fecha, hora),
-  -- Comprobacion de servicio/manicurista en uso antes de borrar.
   KEY idx_citas_servicio (servicio_id),
   KEY idx_citas_manicurista (manicurista_id)
 ) ENGINE=InnoDB;

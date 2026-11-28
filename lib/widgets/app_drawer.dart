@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../screens/citas_screen.dart';
 import '../screens/contacto_screen.dart';
 import '../screens/servicios_screen.dart';
 import '../theme/app_theme.dart';
@@ -115,8 +114,8 @@ class AppDrawer extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
               child: PillButton(
-                label: 'Pide tu cita online',
-                onPressed: () => _open(context, const CitasScreen()),
+                label: 'Elige tu servicio',
+                onPressed: () => _open(context, ServiciosScreen()),
               ),
             ),
           ],

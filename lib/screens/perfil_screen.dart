@@ -9,8 +9,8 @@ import '../services/google_sign_in_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_header.dart';
 import '../widgets/bottom_nav_bar.dart';
-import 'citas_screen.dart';
 import 'login_screen.dart';
+import 'servicios_screen.dart';
 
 class PerfilScreen extends StatefulWidget {
   const PerfilScreen({super.key});
@@ -71,7 +71,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
           Navigator.pop(sheetContext);
           Navigator.push(
             context,
-            MaterialPageRoute<void>(builder: (_) => const CitasScreen()),
+            MaterialPageRoute<void>(builder: (_) => ServiciosScreen()),
           );
         },
       ),
@@ -105,8 +105,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
     final appointments = _appointments ?? const <Appointment>[];
     final activeCount = appointments
         .where(
-          (appointment) =>
-              appointment.start?.isAfter(DateTime.now()) ?? false,
+          (appointment) => appointment.start?.isAfter(DateTime.now()) ?? false,
         )
         .length;
     // loadMine ordena de más antigua a más reciente.
@@ -181,16 +180,13 @@ class _PerfilScreenState extends State<PerfilScreen> {
         ),
       ),
       bottomNavigationBar: BottomNavBar(
-        selectedIndex: 3,
+        selectedIndex: 2,
         onTap: (index) => openTab(context, index),
       ),
     );
   }
 
-  Widget _accountCard({
-    required AppSession session,
-    required int activeCount,
-  }) {
+  Widget _accountCard({required AppSession session, required int activeCount}) {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 25, 20, 20),
       decoration: BoxDecoration(
@@ -303,7 +299,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
             ? _loadAppointments
             : () => Navigator.push(
                 context,
-                MaterialPageRoute<void>(builder: (_) => const CitasScreen()),
+                MaterialPageRoute<void>(builder: (_) => ServiciosScreen()),
               ),
         trailing: hasError ? Icons.refresh : Icons.chevron_right,
       );
@@ -531,7 +527,7 @@ class _AppointmentHistorySheet extends StatelessWidget {
               child: ElevatedButton.icon(
                 onPressed: onBook,
                 icon: const Icon(Icons.arrow_forward_rounded),
-                label: const Text('Pide tu cita online'),
+                label: const Text('Elige tu servicio'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.button,
                   foregroundColor: AppTheme.surface,
