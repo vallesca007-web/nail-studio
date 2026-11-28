@@ -12,6 +12,57 @@ const { adjustPrice } = require('./price');
 
 const serviceCategories = new Set(['manicura', 'pedicura']);
 
+function validDate(value) {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const date = new Date(`${value}T00:00:00.000Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+}
+
+function promotionPayload(body, existing = {}) {
+  const value = (key) => (
+    body && Object.hasOwn(body, key) ? body[key] : existing[key]
+  );
+  const titulo = typeof value('titulo') === 'string' ? value('titulo').trim() : '';
+  const etiqueta = typeof value('etiqueta') === 'string'
+    ? value('etiqueta').trim()
+    : '';
+  const descripcion = typeof value('descripcion') === 'string'
+    ? value('descripcion').trim()
+    : '';
+  const rawEndDate = value('fecha_fin');
+  const fecha_fin = rawEndDate === '' || rawEndDate === null || rawEndDate === undefined
+    ? null
+    : rawEndDate;
+  const rawActive = value('activo');
+  const activo = rawActive === undefined ? true : rawActive;
+
+  if (!titulo || titulo.length > 120) {
+    return { error: 'El título es obligatorio y no puede superar 120 caracteres.' };
+  }
+  if (etiqueta.length > 40) {
+    return { error: 'La etiqueta no puede superar 40 caracteres.' };
+  }
+  if (!descripcion || descripcion.length > 500) {
+    return { error: 'La descripción es obligatoria y no puede superar 500 caracteres.' };
+  }
+  if (fecha_fin !== null && !validDate(fecha_fin)) {
+    return { error: 'La fecha de vigencia no es válida.' };
+  }
+  if (typeof activo !== 'boolean' && activo !== 0 && activo !== 1) {
+    return { error: 'El estado de la promoción no es válido.' };
+  }
+
+  return {
+    data: {
+      titulo,
+      etiqueta: etiqueta || 'Promoción',
+      descripcion,
+      fecha_fin,
+      activo: Boolean(activo),
+    },
+  };
+}
+
 module.exports = function createAdminRoutes(pool) {
   const router = express.Router();
 
@@ -42,6 +93,71 @@ module.exports = function createAdminRoutes(pool) {
 
   router.get('/me', requireAdmin, (request, response) => {
     response.json({ ok: true, user: request.admin.user });
+  });
+
+  router.get('/promotions', requireAdmin, async (request, response, next) => {
+    try {
+      const [rows] = await pool.execute(
+        `SELECT id, titulo, etiqueta, descripcion, fecha_fin, activo
+         FROM promociones ORDER BY creado_en DESC, id DESC`,
+      );
+      response.json(rows);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post('/promotions', requireAdmin, async (request, response, next) => {
+    try {
+      const parsed = promotionPayload(request.body);
+      if (parsed.error) return response.status(400).json({ error: parsed.error });
+      const { titulo, etiqueta, descripcion, fecha_fin, activo } = parsed.data;
+      const [result] = await pool.execute(
+        `INSERT INTO promociones (titulo, etiqueta, descripcion, fecha_fin, activo)
+         VALUES (?, ?, ?, ?, ?)`,
+        [titulo, etiqueta, descripcion, fecha_fin, activo],
+      );
+      response.status(201).json({ id: result.insertId, ...parsed.data });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.put('/promotions/:id', requireAdmin, async (request, response, next) => {
+    try {
+      const [rows] = await pool.execute(
+        'SELECT id, titulo, etiqueta, descripcion, fecha_fin, activo FROM promociones WHERE id=?',
+        [request.params.id],
+      );
+      if (!rows.length) return response.status(404).json({ error: 'Promoción inexistente.' });
+      const parsed = promotionPayload(request.body, rows[0]);
+      if (parsed.error) return response.status(400).json({ error: parsed.error });
+      const { titulo, etiqueta, descripcion, fecha_fin, activo } = parsed.data;
+      await pool.execute(
+        `UPDATE promociones
+         SET titulo=?, etiqueta=?, descripcion=?, fecha_fin=?, activo=?
+         WHERE id=?`,
+        [titulo, etiqueta, descripcion, fecha_fin, activo, request.params.id],
+      );
+      response.json({ id: Number(request.params.id), ...parsed.data });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.delete('/promotions/:id', requireAdmin, async (request, response, next) => {
+    try {
+      const [result] = await pool.execute(
+        'DELETE FROM promociones WHERE id=?',
+        [request.params.id],
+      );
+      if (!result.affectedRows) {
+        return response.status(404).json({ error: 'Promoción inexistente.' });
+      }
+      response.json({ ok: true, deleted: true });
+    } catch (error) {
+      next(error);
+    }
   });
 
   router.get('/services', requireAdmin, async (request, response, next) => {

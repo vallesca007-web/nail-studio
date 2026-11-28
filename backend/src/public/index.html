@@ -30,6 +30,7 @@
           <button class="nav-button active" data-section="appointments">Citas</button>
           <button class="nav-button" data-section="specialists">Manicuristas</button>
           <button class="nav-button" data-section="services">Servicios</button>
+          <button class="nav-button" data-section="promotions">Promociones</button>
         </nav>
         <button id="logoutButton" class="logout">Cerrar sesión</button>
       </aside>
@@ -89,6 +90,25 @@
           </form>
           <div id="pricePreview" class="card-list"></div>
           <div id="servicesList" class="card-list"></div>
+        </section>
+
+        <section id="promotionsSection" class="section hidden">
+          <button id="addPromotionButton" class="primary">Agregar promoción</button>
+          <form id="promotionForm" class="service-form promotion-form hidden">
+            <input name="title" placeholder="Título" maxlength="120" required>
+            <input name="badge" placeholder="Etiqueta (ej. 10% OFF)" maxlength="40">
+            <textarea name="description" placeholder="Descripción" maxlength="500" required></textarea>
+            <label class="checkbox-field">
+              <span>Válida hasta</span>
+              <input name="endDate" type="date">
+            </label>
+            <label class="checkbox-field">
+              <input name="active" type="checkbox" checked>
+              <span>Promoción activa</span>
+            </label>
+            <button class="primary" type="submit">Guardar promoción</button>
+          </form>
+          <div id="promotionsList" class="card-list"></div>
         </section>
       </div>
     </section>

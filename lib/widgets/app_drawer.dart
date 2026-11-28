@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../screens/contacto_screen.dart';
+import '../screens/promociones_screen.dart';
 import '../screens/servicios_screen.dart';
 import '../theme/app_theme.dart';
 import 'pill_button.dart';
@@ -77,7 +78,7 @@ class AppDrawer extends StatelessWidget {
                     icon: Icons.local_offer_outlined,
                     title: 'Promociones',
                     badge: 'Exclusivo',
-                    onTap: () => _open(context, ServiciosScreen()),
+                    onTap: () => _open(context, const PromocionesScreen()),
                   ),
                   _DrawerItem(
                     icon: Icons.mail_outline,

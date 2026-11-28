@@ -11,6 +11,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { createPool } = require('mysql2/promise');
 const asyncHandler = require('./middleware/asyncHandler');
+const createPromotionRoutes = require('./routes/promotionRoutes');
 const createServiceCatalogRoutes = require('./routes/serviceCatalogRoutes');
 
 const {
@@ -188,6 +189,7 @@ app.use((request, response, next) => {
 });
 app.use(express.json({ limit: '16kb' }));
 app.use(cookieParser());
+app.use('/api/promociones', createPromotionRoutes(pool));
 app.use('/api/servicios', createServiceCatalogRoutes(pool));
 
 const loginLimiter = rateLimit({
